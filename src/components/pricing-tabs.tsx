@@ -145,8 +145,8 @@ export function PricingTabs({ locations }: PricingTabsProps) {
                   <CardContent>
                     <ul className="space-y-2 text-sm text-muted-foreground">
                       <li className="flex items-center gap-2">
-                        <Check className="size-4 text-primary" /> Безлимитный
-                        трафик
+                        <Check className="size-4 text-primary" /> Нет
+                        ограничений по устройствам
                       </li>
                       <li className="flex items-center gap-2">
                         <Check className="size-4 text-primary" /> Моментальная
