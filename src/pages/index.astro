@@ -1,0 +1,350 @@
+---
+import "@/styles/global.css"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+	Card,
+	CardContent,
+	CardDescription,
+	CardFooter,
+	CardHeader,
+	CardTitle,
+} from "@/components/ui/card"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { PricingTabs } from "@/components/pricing-tabs"
+import { TestimonialsGrid } from "@/components/testimonials-grid"
+import { FaqAccordion } from "@/components/faq-accordion"
+import {
+	Shield,
+	Gamepad2,
+	Globe2,
+	Router,
+	TimerReset,
+	Lock,
+	Sparkles,
+	Check,
+} from "lucide-react"
+
+const heroHighlights = [
+	{ label: "Подключение", value: "за 5 секунд" },
+	{ label: "Скорость", value: "до 10 Гбит/с" },
+	{ label: "Устройств", value: "неограниченно" },
+]
+
+const locations = [
+	{
+		id: "moscow",
+		city: "Москва",
+		country: "Россия",
+		flagLabel: "RU",
+		speed: "до 100 Мбит/с",
+		description:
+			"Идеально для игр и ежедневного серфинга внутри СНГ. Легко ставится на роутер и смартфон.",
+		suits: [
+			"Установки на роутер",
+			"Игры и стримы с низким пингом",
+			"Приватность без логов",
+		],
+		types: ["Vless", "OpenVPN", "IPSec"],
+		tiers: [
+			{ term: "Тест", price: "0 ₽", note: "3 часа, чтобы всё проверить" },
+			{ term: "1 мес.", price: "29 ₽", note: "Минимум затрат" },
+			{ term: "3 мес.", price: "59 ₽", note: "Лучший старт" },
+			{ term: "12 мес.", price: "399 ₽", note: "Максимальная выгода", featured: true },
+		],
+		guarantee: "Ключ приходит в Telegram-бота сразу после оплаты.",
+	},
+	{
+		id: "amsterdam",
+		city: "Амстердам",
+		country: "Нидерланды",
+		flagLabel: "NL",
+		speed: "до 10 000 Мбит/с",
+		description:
+			"Самая быстрая европейская точка с чистыми IP и поддержкой AmneziaWG. Подходит для всех зарубежных сервисов.",
+		suits: [
+			"Доступа к Netflix, Discord, AI-инструментам",
+			"Установки на роутер и NAS",
+			"Работы с Twitch и стримами",
+		],
+		types: ["Vless", "AmneziaWG"],
+		tiers: [
+			{ term: "Тест", price: "0 ₽", note: "Полный функционал" },
+			{ term: "1 мес.", price: "89 ₽", note: "Хит продаж", featured: true },
+			{ term: "3 мес.", price: "249 ₽", note: "Скидка 15%" },
+			{ term: "12 мес.", price: "799 ₽", note: "Для команды" },
+		],
+		guarantee: "Отправляем готовую конфигурацию вместе с инструкциями.",
+	},
+	{
+		id: "falkenstein",
+		city: "Фалькенштайн",
+		country: "Германия",
+		flagLabel: "DE",
+		speed: "до 1 000 Мбит/с",
+		description:
+			"Надёжный дата-центр с запасом каналов. Баланс скорости и стабильности для постоянного использования.",
+		suits: [
+			"Работы с банковскими и гос-сервисами",
+			"Раздачи интернета на команду",
+			"Просмотра потокового 4K видео",
+		],
+		types: ["Vless", "WireGuard", "OpenVPN"],
+		tiers: [
+			{ term: "1 мес.", price: "75 ₽", note: "Без ограничений" },
+			{ term: "3 мес.", price: "199 ₽", note: "Практично" },
+			{ term: "6 мес.", price: "349 ₽", note: "Командный тариф", featured: true },
+			{ term: "12 мес.", price: "649 ₽", note: "Лучшее предложение" },
+		],
+		guarantee: "Мониторим узлы 24/7 и автоматически выдаём замену.",
+	},
+]
+
+const features = [
+	{
+		title: "Чистые IP и без логов",
+		description:
+			"Каждая локация используется только вашей командой. Мы не ведём логов и не делимся конфигурациями.",
+		icon: Shield,
+	},
+	{
+		title: "Игровые маршруты",
+		description:
+			"Ручные маршруты для Steam, PSN и игровых серверов. Пинг стабилен даже в пиковые часы.",
+		icon: Gamepad2,
+	},
+	{
+		title: "Зарубежные сервисы",
+		description:
+			"Доступ к банковским приложениям, рекламным кабинетам, AI-платформам и соцсетям без блокировок.",
+		icon: Globe2,
+	},
+	{
+		title: "Домашние сценарии",
+		description:
+			"Работает на роутерах Keenetic, MikroTik, Asus и любых смартфонах. Есть инструкции и поддержка.",
+		icon: Router,
+	},
+]
+
+const testimonials = [
+	{
+		name: "RatedSalesman1997",
+		city: "Москва → Франкфурт",
+		text:
+			"Поставил за пару минут, скорости стабильно выше конкурентов. Поддержка отвечает моментально.",
+	},
+	{
+		name: "ID: 1811****45",
+		city: "Франкфурт",
+		text:
+			"YouTube в 4K и стримы идут без буфера. Понравилось, что ключ прилетает сразу в Telegram.",
+	},
+	{
+		name: "chuuumbaa",
+		city: "Москва → Амстердам",
+		text:
+			"Каждый день захожу через Vlez: никакой рекламы, всё запускается моментально. Цена вообще огонь.",
+	},
+]
+
+const faq = [
+	{
+		question: "Как быстро я получу ключ?",
+		answer:
+			"Оплата проходит через Telegram-бота. Бот моментально выдаёт конфиг и команду для AmneziaVPN или любого другого клиента.",
+	},
+	{
+		question: "Почему так дёшево?",
+		answer:
+			"Мы управляем своими серверами и автоматизировали развёртывание. Не переплачиваем дата-центрам и не держим дорогую поддержку.",
+	},
+	{
+		question: "Куда вводить ключ?",
+		answer:
+			"Поддерживаем AmneziaVPN, V2Ray, Clash, Outline и стандартные OpenVPN клиенты. Инструкции прилагаются к заказу.",
+	},
+]
+
+const ctaPerks = [
+	"Telegram-бот с моментальной выдачей",
+	"Готовые инструкции под ваше устройство",
+	"Смена локации в один клик",
+]
+---
+
+<html lang="ru" class="scroll-smooth">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>kitsura VPN — быстрый и честный VPN без блокировок</title>
+		<meta
+			name="description"
+			content="Лендинг VPN-провайдера с быстрой выдачей ключей, европейскими серверами и готовыми конфигами."
+		/>
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+	</head>
+	<body class="bg-background text-foreground">
+		<main class="relative overflow-hidden">
+			<div
+				class="pointer-events-none absolute inset-x-0 top-[-200px] z-0 h-[480px] bg-gradient-to-b from-primary/10 via-transparent to-transparent blur-3xl"
+				aria-hidden="true"
+			></div>
+
+			<section class="relative z-10 mx-auto flex max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+				<div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
+					<div class="space-y-8">
+						<Badge variant="secondary" className="px-4 py-1 text-sm">
+							⚜️ Подключение за секунды · ✈️ Высокая скорость · 📺 Любое устройство
+						</Badge>
+						<div class="space-y-6">
+							<h1 class="text-4xl font-semibold leading-tight tracking-tight sm:text-5xl">
+								Твой реально быстрый VPN с честными тарифами
+							</h1>
+							<p class="text-lg text-muted-foreground sm:text-xl">
+								Прозрачные цены, автоматическая выдача ключей и забота о скорости. Выбирай город и получай доступ к зарубежным сервисам, играм и приватности без ограничений.
+							</p>
+						</div>
+						<div class="flex flex-wrap gap-3">
+							<Button className="h-12 rounded-full px-8 text-base">Заказать доступ</Button>
+							<Button variant="outline" className="h-12 rounded-full px-8 text-base">
+								Смотреть тарифы
+							</Button>
+						</div>
+						<dl class="grid gap-4 sm:grid-cols-3">
+							{heroHighlights.map((item) => (
+								<div
+									class="rounded-2xl border border-border/80 bg-card/80 p-4 shadow-sm"
+								>
+									<dt class="text-sm text-muted-foreground">{item.label}</dt>
+									<dd class="text-xl font-semibold">{item.value}</dd>
+								</div>
+							))}
+						</dl>
+					</div>
+					<Card className="rounded-3xl border-border/70 bg-gradient-to-b from-background/95 to-card/80 p-6 shadow-[0px_20px_80px_rgba(15,23,42,0.18)]">
+						<CardHeader className="gap-4">
+							<Badge variant="outline" className="w-fit">24/7 uptime</Badge>
+							<CardTitle className="text-2xl">Защита, которой доверяют</CardTitle>
+							<CardDescription>
+								Пингуем сервера каждую минуту, держим резервные IP и автоматически выдаём замену при малейшей просадке.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-4">
+							<div class="flex items-center justify-between rounded-2xl bg-muted/60 px-4 py-3">
+								<span class="text-sm text-muted-foreground">Активные подключения</span>
+								<span class="text-2xl font-semibold">3 482</span>
+							</div>
+							<div class="space-y-2 text-sm">
+								<p class="flex items-center gap-2 text-muted-foreground">
+									<Sparkles className="size-4 text-primary" /> Еженедельные обновления маршрутов
+								</p>
+								<p class="flex items-center gap-2 text-muted-foreground">
+									<TimerReset className="size-4 text-primary" /> Среднее время выдачи ключа — 12 секунд
+								</p>
+								<p class="flex items-center gap-2 text-muted-foreground">
+									<Lock className="size-4 text-primary" /> Логи отключены на уровне сервера
+								</p>
+							</div>
+						</CardContent>
+						<CardFooter>
+							<Button className="w-full">Попробовать бесплатно</Button>
+						</CardFooter>
+					</Card>
+				</div>
+			</section>
+
+			<section class="mx-auto max-w-6xl space-y-10 px-4 pb-16 sm:px-6 lg:px-8">
+				<div class="flex flex-col gap-4 text-center">
+					<Badge variant="secondary" className="mx-auto">Тарифы и локации</Badge>
+					<h2 class="text-3xl font-semibold sm:text-4xl">Выбирай город с нужной скоростью</h2>
+					<p class="text-muted-foreground text-base sm:text-lg">
+						Ключи подходят для AmneziaVPN, Outline, V2Ray и OpenVPN. Можно переключаться между локациями бесплатно.
+					</p>
+				</div>
+				<PricingTabs client:load locations={locations} />
+			</section>
+
+			<section class="mx-auto max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:px-8">
+				<div class="flex flex-col gap-4 text-center">
+					<Badge variant="secondary" className="mx-auto">Преимущества</Badge>
+					<h2 class="text-3xl font-semibold sm:text-4xl">Почему выбирают kitsura VPN</h2>
+					<p class="text-muted-foreground text-base sm:text-lg">
+						Мы копируем лучшие практики vlez.rest и добавляем автоматизацию, чтобы вы получали стабильность без переплаты.
+					</p>
+				</div>
+				<div class="grid gap-6 md:grid-cols-2">
+					{features.map((feature) => (
+						<Card className="rounded-3xl border-border/70 bg-card/90">
+							<CardHeader className="flex-row items-center gap-4">
+								<div class="rounded-2xl bg-primary/10 p-3 text-primary">
+									<feature.icon className="size-6" />
+								</div>
+								<div>
+									<CardTitle className="text-xl">{feature.title}</CardTitle>
+									<CardDescription>{feature.description}</CardDescription>
+								</div>
+							</CardHeader>
+						</Card>
+					))}
+				</div>
+			</section>
+
+			<section class="mx-auto max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:px-8">
+				<div class="flex flex-col gap-4 text-center">
+					<Badge variant="secondary" className="mx-auto">Отзывы</Badge>
+					<h2 class="text-3xl font-semibold sm:text-4xl">Что говорят пользователи</h2>
+					<p class="text-muted-foreground text-base sm:text-lg">
+						Подборка реальных отзывов из Telegram-канала. Люди ценят скорость выдачи, поддержку и честную цену.
+					</p>
+				</div>
+					<TestimonialsGrid client:load testimonials={testimonials} />
+			</section>
+
+			<section class="mx-auto max-w-5xl space-y-8 px-4 py-16 sm:px-6 lg:px-8">
+				<div class="flex flex-col gap-4 text-center">
+					<Badge variant="secondary" className="mx-auto">FAQ</Badge>
+					<h2 class="text-3xl font-semibold sm:text-4xl">Частые вопросы</h2>
+				</div>
+				<FaqAccordion client:load faq={faq} />
+			</section>
+
+			<section class="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
+				<Card className="rounded-3xl border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background/80 p-8 text-center shadow-[0px_30px_120px_rgba(14,116,144,0.25)]">
+					<CardHeader className="space-y-4">
+						<Badge variant="secondary" className="mx-auto w-fit">Готовы подключиться?</Badge>
+						<CardTitle className="text-3xl sm:text-4xl">Получите тестовый ключ прямо сейчас</CardTitle>
+						<CardDescription className="text-base">
+							Оставьте Telegram и мы пришлём ссылку на бота, который выдаст конфиг за 12 секунд.
+						</CardDescription>
+					</CardHeader>
+					<CardContent className="space-y-6">
+						<form class="mx-auto grid max-w-3xl gap-4 sm:grid-cols-[1fr_auto]">
+							<div class="text-left">
+								<Label htmlFor="telegram">Telegram @username</Label>
+								<Input
+									id="telegram"
+									name="telegram"
+									placeholder="@username"
+									className="h-12 rounded-2xl border-border/70"
+								/>
+							</div>
+							<Button type="submit" className="h-12 w-full rounded-2xl px-8 text-base">
+								Получить ссылку
+							</Button>
+						</form>
+						<ul class="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:justify-center sm:gap-6">
+							{ctaPerks.map((perk) => (
+								<li class="flex items-center justify-center gap-2">
+									<Check className="size-4 text-primary" /> {perk}
+								</li>
+							))}
+						</ul>
+					</CardContent>
+				</Card>
+			</section>
+		</main>
+	</body>
+</html>
