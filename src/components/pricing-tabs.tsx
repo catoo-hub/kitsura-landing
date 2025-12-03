@@ -159,7 +159,15 @@ export function PricingTabs({ locations }: PricingTabsProps) {
                     </ul>
                   </CardContent>
                   <CardFooter>
-                    <Button className="w-full">Заказать</Button>
+                    <Button className="w-full">
+                      <a
+                        href="https://t.me/kitsura_bot"
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        Купить
+                      </a>
+                    </Button>
                   </CardFooter>
                 </Card>
               ))}

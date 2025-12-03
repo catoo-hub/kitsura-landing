@@ -1,0 +1,3 @@
+promo.kitsura.fun {
+    reverse_proxy app:80
+}

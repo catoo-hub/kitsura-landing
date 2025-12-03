@@ -33,7 +33,7 @@ const heroHighlights = [
 const prices = [
 	{ term: "1 мес.", price: "135 ₽", note: "Хит продаж", featured: true },
 	{ term: "3 мес.", price: "380 ₽", note: "На подумать!" },
-	{ term: "6 мес.", price: "740 ₽", note: "На полгода точно хватит 🤞" },
+	{ term: "6 мес.", price: "740 ₽", note: "Должно хватить 🤞" },
 	{ term: "12 мес.", price: "1420 ₽", note: "Максимальная выгода" },
 ]
 
@@ -171,7 +171,7 @@ const features = [
 
 const windowsAppPerks = [
 	"Поддержка VLESS, Trojan, Shadowsocks, WireGuard",
-	"Автоматические обновления Mihomo core и конфигов",
+	"Автоматические обновления Mihomo-core и конфигов",
 	"Журнал подключений и моментальное переключение профилей",
 ]
 
@@ -255,9 +255,15 @@ const ctaPerks = [
 							</p>
 						</div>
 						<div class="flex flex-wrap gap-3">
-							<Button className="h-12 rounded-full px-8 text-base">Заказать доступ</Button>
+							<Button className="h-12 rounded-full px-8 text-base">
+								<a href="https://t.me/kitsura_bot" target="_blank" rel="noreferrer">
+									Купить доступ
+								</a>
+							</Button>
 							<Button variant="outline" className="h-12 rounded-full px-8 text-base">
-								Смотреть тарифы
+								<a href="#pricing" >
+									Смотреть тарифы
+								</a>
 							</Button>
 						</div>
 						<dl class="grid gap-4 sm:grid-cols-3">
@@ -303,12 +309,12 @@ const ctaPerks = [
 				</div>
 			</section>
 
-			<section class="mx-auto max-w-6xl space-y-10 px-4 pb-16 sm:px-6 lg:px-8">
+			<section class="mx-auto max-w-6xl space-y-10 px-4 pb-16 sm:px-6 lg:px-8" id="pricing">
 				<div class="flex flex-col gap-4 text-center">
 					<Badge variant="secondary" className="mx-auto">Тарифы и локации</Badge>
 					<h2 class="text-3xl font-semibold sm:text-4xl">Выбирай город с нужной скоростью</h2>
 					<p class="text-muted-foreground text-base sm:text-lg">
-						Один ключ подходит для AmneziaVPN, Outline, V2Ray и OpenVPN на всех устройствах сразу. Стоимость одинакова во всех городах, а переключение между локациями бесплатное.
+						Один ключ подходит для всех устройств сразу. Стоимость одинакова во всех городах, а переключение между локациями бесплатное.
 					</p>
 				</div>
 				<PricingTabs client:load locations={locations} />
@@ -408,7 +414,7 @@ const ctaPerks = [
 				<Card className="rounded-3xl border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background/80 p-8 text-center shadow-[0px_30px_120px_rgba(14,116,144,0.25)]">
 					<CardHeader className="space-y-4">
 						<Badge variant="secondary" className="mx-auto w-fit">Готовы подключиться?</Badge>
-						<CardTitle className="text-3xl sm:text-4xl">Получите пробный прямо сейчас</CardTitle>
+						<CardTitle className="text-3xl sm:text-4xl">Получите пробный период прямо сейчас</CardTitle>
 						<CardDescription className="text-base">
 							Перейдите в бота, который выдаст конфиг за 12 секунд.
 						</CardDescription>
