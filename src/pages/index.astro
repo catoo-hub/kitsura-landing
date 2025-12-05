@@ -23,6 +23,10 @@ import {
 	Sparkles,
 	Check,
 } from "lucide-react"
+import GradualBlur from '@/components/GradualBlur'
+import Aurora from '@/components/Aurora'
+import { Hero } from '@/components/hero'
+import LightRays from '@/components/LightRays'
 
 const heroHighlights = [
 	{ label: "Подключение", value: "за 5 секунд" },
@@ -221,7 +225,7 @@ const ctaPerks = [
 ]
 ---
 
-<html lang="ru" class="scroll-smooth">
+<html lang="ru" class="dark scroll-smooth">
 	<head>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -235,12 +239,7 @@ const ctaPerks = [
 	</head>
 	<body class="bg-background text-foreground">
 		<main class="relative overflow-hidden">
-			<div
-				class="pointer-events-none absolute inset-x-0 top-[-200px] z-0 h-[480px] bg-gradient-to-b from-primary/10 via-transparent to-transparent blur-3xl"
-				aria-hidden="true"
-			></div>
-
-			<section class="relative z-10 mx-auto flex max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
+			<!-- <section class="relative z-10 mx-auto flex max-w-6xl flex-col gap-12 px-4 py-16 sm:px-6 lg:px-8 lg:py-24">
 				<div class="grid gap-10 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center">
 					<div class="space-y-8">
 						<Badge variant="secondary" className="px-4 py-1 text-sm">
@@ -307,7 +306,9 @@ const ctaPerks = [
 						</CardFooter>
 					</Card>
 				</div>
-			</section>
+			</section> -->
+
+			<Hero client:load/>
 
 			<section class="mx-auto max-w-6xl space-y-10 px-4 pb-16 sm:px-6 lg:px-8" id="pricing">
 				<div class="flex flex-col gap-4 text-center">
@@ -443,5 +444,13 @@ const ctaPerks = [
 				</Card>
 			</section>
 		</main>
+
+		<GradualBlur
+			target="page"
+			divCount={10}
+			exponential={true}
+			opacity={1}
+			preset="bottom"
+		/>
 	</body>
 </html>
