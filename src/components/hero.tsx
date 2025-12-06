@@ -9,7 +9,6 @@ import {
   CardHeader,
   CardTitle,
 } from "./ui/card";
-import Aurora from "./Aurora";
 import LightRays from "./LightRays";
 
 const heroHighlights = [
