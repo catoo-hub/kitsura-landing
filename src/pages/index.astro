@@ -1,12 +1,12 @@
 ---
 import "@/styles/global.css"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
 import {
 	Card,
 	CardContent,
 	CardDescription,
-	CardFooter,
 	CardHeader,
 	CardTitle,
 } from "@/components/ui/card"
@@ -18,20 +18,11 @@ import {
 	Gamepad2,
 	Globe2,
 	Router,
-	TimerReset,
-	Lock,
-	Sparkles,
 	Check,
 } from "lucide-react"
 import GradualBlur from '@/components/GradualBlur'
 import { Hero } from '@/components/hero'
-import LightRays from '@/components/LightRays'
-
-const heroHighlights = [
-	{ label: "Подключение", value: "за 5 секунд" },
-	{ label: "Скорость", value: "до 10 Гбит/с" },
-	{ label: "Устройств", value: "неограниченно" },
-]
+import { Reveal } from "@/components/reveal"
 
 const prices = [
 	{ term: "1 мес.", price: "135 ₽", note: "Хит продаж", featured: true },
@@ -237,141 +228,176 @@ const ctaPerks = [
 		<link rel="icon" type="image/png" href="/favicon.png" />
 	</head>
 	<body class="bg-background text-foreground">
+		<header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/5 border-b border-white/5">
+			<div class="mx-auto flex max-w-6xl items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
+				<div class="flex items-center gap-3">
+					<img src="/favicon.png" alt="Kitsura Logo" class="size-8 grayscale brightness-125" />
+					<span class="font-semibold text-lg tracking-tight">Kitsura</span>
+				</div>
+				<a href="/steam" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors")}>
+					Пополнение Steam
+				</a>
+			</div>
+		</header>
 		<main class="relative overflow-hidden">
 			<Hero client:load/>
 
-			<section class="mx-auto max-w-6xl space-y-10 px-4 pb-16 sm:px-6 lg:px-8" id="pricing">
-				<div class="flex flex-col gap-4 text-center">
-					<Badge variant="secondary" className="mx-auto">Тарифы и локации</Badge>
-					<h2 class="text-3xl font-semibold sm:text-4xl">Выбирай город с нужной скоростью</h2>
-					<p class="text-muted-foreground text-base sm:text-lg">
-						Один ключ подходит для всех устройств сразу. Стоимость одинакова во всех городах, а переключение между локациями бесплатное.
-					</p>
-				</div>
-				<PricingTabs client:load locations={locations} />
+			<section class="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8" id="pricing">
+				<Reveal client:load>
+					<div class="flex flex-col gap-4 text-center">
+						<Badge variant="secondary" className="mx-auto">Тарифы и локации</Badge>
+						<h2 class="text-3xl font-semibold sm:text-4xl">Выбирай город с нужной скоростью</h2>
+						<p class="text-muted-foreground text-base sm:text-lg">
+							Один ключ подходит для всех устройств сразу. Стоимость одинакова во всех городах, а переключение между локациями бесплатное.
+						</p>
+					</div>
+				</Reveal>
+				<Reveal client:load delay={0.2} className="mt-10">
+					<PricingTabs client:load locations={locations} />
+				</Reveal>
 			</section>
 
-			<section class="mx-auto max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:px-8">
-				<div class="flex flex-col gap-4 text-center">
-					<Badge variant="secondary" className="mx-auto">Преимущества</Badge>
-					<h2 class="text-3xl font-semibold sm:text-4xl">Почему выбирают Kitsura</h2>
-					<p class="text-muted-foreground text-base sm:text-lg">
-						Мы применяем лучшие практики от других провайдеров и добавляем автоматизацию, чтобы вы получали стабильность без переплаты.
-					</p>
-				</div>
-				<div class="grid gap-6 md:grid-cols-2">
-					{features.map((feature) => (
-						<Card className="rounded-3xl border-border/70 bg-card/90">
-							<CardHeader className="flex-row items-center gap-4">
-								<div class="rounded-2xl bg-primary/10 p-3 text-primary">
-									<feature.icon className="size-6" />
-								</div>
-								<div>
-									<CardTitle className="text-xl">{feature.title}</CardTitle>
-									<CardDescription>{feature.description}</CardDescription>
-								</div>
-							</CardHeader>
-						</Card>
-					))}
-				</div>
+			<section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+				<Reveal client:load>
+					<div class="flex flex-col gap-4 text-center">
+						<Badge variant="secondary" className="mx-auto">Преимущества</Badge>
+						<h2 class="text-3xl font-semibold sm:text-4xl">Почему выбирают Kitsura</h2>
+						<p class="text-muted-foreground text-base sm:text-lg">
+							Мы применяем лучшие практики от других провайдеров и добавляем автоматизацию, чтобы вы получали стабильность без переплаты.
+						</p>
+					</div>
+				</Reveal>
+				<Reveal client:load delay={0.2} className="mt-10">
+					<div class="grid gap-6 md:grid-cols-2">
+						{features.map((feature) => (
+							<Card className="rounded-3xl border-border/70 bg-card/90">
+								<CardHeader className="flex-row items-center gap-4">
+									<div class="rounded-2xl bg-primary/10 p-3 text-primary">
+										<feature.icon className="size-6" />
+									</div>
+									<div>
+										<CardTitle className="text-xl">{feature.title}</CardTitle>
+										<CardDescription>{feature.description}</CardDescription>
+									</div>
+								</CardHeader>
+							</Card>
+						))}
+					</div>
+				</Reveal>
 			</section>
 
 			<section class="mx-auto max-w-6xl items-center gap-10 px-4 py-16 sm:px-6 lg:flex lg:px-8">
 				<div class="flex-1 space-y-6">
-					<Badge variant="secondary" className="w-fit">Приложение Windows</Badge>
-					<div class="space-y-4">
-						<h2 class="text-3xl font-semibold sm:text-4xl">Kitsura VPN для Windows</h2>
-						<p class="text-muted-foreground text-base sm:text-lg">
-							Десктопный клиент на базе Mihomo: подключает VLESS, Trojan, Shadowsocks и WireGuard без сторонних зависимостей. Без витрин и покупок — только
-							чистое управление профилями и обновления ядра в пару кликов.
-						</p>
-					</div>
-					<ul class="space-y-3 text-sm text-muted-foreground">
-						{windowsAppPerks.map((perk) => (
-							<li class="flex items-center gap-2">
-								<Check className="size-4 text-primary" /> {perk}
-							</li>
-						))}
-					</ul>
-					<div class="flex flex-wrap gap-3">
-						<Button className="h-11 rounded-full px-6">Скачать установщик</Button>
-						<Button variant="outline" className="h-11 rounded-full px-6">Смотреть инструкцию</Button>
-					</div>
-				</div>
-				<Card className="mt-10 flex-1 rounded-3xl border-primary/40 bg-gradient-to-br from-primary/5 via-background to-card/80 p-6 shadow-[0px_25px_90px_rgba(46,70,85,0.25)] lg:mt-0">
-					<CardHeader className="space-y-2">
-						<CardDescription>Интерфейс Kitsura VPN</CardDescription>
-						<CardTitle className="text-2xl">Live-трафик и переключение за 1 секунду</CardTitle>
-					</CardHeader>
-					<CardContent className="space-y-4 text-sm text-muted-foreground">
-						<div class="rounded-2xl border border-dashed border-border/60 bg-card/80 p-4">
-							<p class="font-medium text-foreground">mihomo-core v1.6.12</p>
-							<p>Профиль: Amsterdam · Ping 18 мс · Uptime 99.98%</p>
+					<Reveal client:load>
+						<Badge variant="secondary" className="w-fit">Приложение Windows</Badge>
+						<div class="space-y-4 mt-4">
+							<h2 class="text-3xl font-semibold sm:text-4xl">Kitsura VPN для Windows</h2>
+							<p class="text-muted-foreground text-base sm:text-lg">
+								Десктопный клиент на базе Mihomo: подключает VLESS, Trojan, Shadowsocks и WireGuard без сторонних зависимостей. Без витрин и покупок — только
+								чистое управление профилями и обновления ядра в пару кликов.
+							</p>
 						</div>
-						<div class="grid gap-3 md:grid-cols-2">
-							<div class="rounded-2xl bg-muted/60 p-4">
-								<p class="text-xs uppercase text-muted-foreground">Скорость</p>
-								<p class="text-2xl font-semibold">940 Мбит/с</p>
-							</div>
-							<div class="rounded-2xl bg-muted/60 p-4">
-								<p class="text-xs uppercase text-muted-foreground">Подключения</p>
-								<p class="text-2xl font-semibold">до 10 устройств</p>
-							</div>
-						</div>
-					</CardContent>
-				</Card>
-			</section>
-
-			<section class="mx-auto max-w-6xl space-y-10 px-4 py-16 sm:px-6 lg:px-8">
-				<div class="flex flex-col gap-4 text-center">
-					<Badge variant="secondary" className="mx-auto">Отзывы</Badge>
-					<h2 class="text-3xl font-semibold sm:text-4xl">Что говорят пользователи</h2>
-					<p class="text-muted-foreground text-base sm:text-lg">
-						Подборка реальных отзывов. Люди ценят скорость выдачи, поддержку и честную цену.
-					</p>
-				</div>
-					<TestimonialsGrid client:load testimonials={testimonials} />
-			</section>
-
-			<section class="mx-auto max-w-5xl space-y-8 px-4 py-16 sm:px-6 lg:px-8">
-				<div class="flex flex-col gap-4 text-center">
-					<Badge variant="secondary" className="mx-auto">FAQ</Badge>
-					<h2 class="text-3xl font-semibold sm:text-4xl">Частые вопросы</h2>
-				</div>
-				<FaqAccordion client:load faq={faq} />
-			</section>
-
-			<section class="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
-				<Card className="rounded-3xl border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background/80 p-8 text-center shadow-[0px_25px_90px_rgba(46,70,85,0.25)]">
-					<CardHeader className="space-y-4">
-						<Badge variant="secondary" className="mx-auto w-fit">Готовы подключиться?</Badge>
-						<CardTitle className="text-3xl sm:text-4xl">Получите пробный период прямо сейчас</CardTitle>
-						<CardDescription className="text-base">
-							Перейдите в бота, который выдаст конфиг за 12 секунд.
-						</CardDescription>
-					</CardHeader>
-					<CardContent className="space-y-6">
-						<div class="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
-							<Button className="h-11 rounded-full px-6">
-								<a href="https://t.me/kitsuravpn" target="_blank" rel="noreferrer">
-									Открыть Telegram-канал
-								</a>
-							</Button>
-							<Button variant="outline" className="h-11 rounded-full px-6">
-								<a href="https://t.me/kitsura_bot" target="_blank" rel="noreferrer">
-									Написать боту
-								</a>
-							</Button>
-						</div>
-						<ul class="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:justify-center sm:gap-6">
-							{ctaPerks.map((perk) => (
-								<li class="flex items-center justify-center gap-2">
+						<ul class="space-y-3 text-sm text-muted-foreground mt-6">
+							{windowsAppPerks.map((perk) => (
+								<li class="flex items-center gap-2">
 									<Check className="size-4 text-primary" /> {perk}
 								</li>
 							))}
 						</ul>
-					</CardContent>
-				</Card>
+						<div class="flex flex-wrap gap-3 mt-6">
+							<Button className="h-11 rounded-full px-6">Скачать установщик</Button>
+							<Button variant="outline" className="h-11 rounded-full px-6">Смотреть инструкцию</Button>
+						</div>
+					</Reveal>
+				</div>
+				<div class="flex-1 mt-10 lg:mt-0">
+					<Reveal client:load delay={0.2}>
+						<Card className="rounded-3xl border-primary/40 bg-gradient-to-br from-primary/5 via-background to-card/80 p-6 shadow-[0px_25px_90px_rgba(46,70,85,0.25)]">
+							<CardHeader className="space-y-2">
+								<CardDescription>Интерфейс Kitsura VPN</CardDescription>
+								<CardTitle className="text-2xl">Live-трафик и переключение за 1 секунду</CardTitle>
+							</CardHeader>
+							<CardContent className="space-y-4 text-sm text-muted-foreground">
+								<div class="rounded-2xl border border-dashed border-border/60 bg-card/80 p-4">
+									<p class="font-medium text-foreground">mihomo-core v1.6.12</p>
+									<p>Профиль: Amsterdam · Ping 18 мс · Uptime 99.98%</p>
+								</div>
+								<div class="grid gap-3 md:grid-cols-2">
+									<div class="rounded-2xl bg-muted/60 p-4">
+										<p class="text-xs uppercase text-muted-foreground">Скорость</p>
+										<p class="text-2xl font-semibold">940 Мбит/с</p>
+									</div>
+									<div class="rounded-2xl bg-muted/60 p-4">
+										<p class="text-xs uppercase text-muted-foreground">Подключения</p>
+										<p class="text-2xl font-semibold">до 10 устройств</p>
+									</div>
+								</div>
+							</CardContent>
+						</Card>
+					</Reveal>
+				</div>
+			</section>
+
+			<section class="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
+				<Reveal client:load>
+					<div class="flex flex-col gap-4 text-center">
+						<Badge variant="secondary" className="mx-auto">Отзывы</Badge>
+						<h2 class="text-3xl font-semibold sm:text-4xl">Что говорят пользователи</h2>
+						<p class="text-muted-foreground text-base sm:text-lg">
+							Подборка реальных отзывов. Люди ценят скорость выдачи, поддержку и честную цену.
+						</p>
+					</div>
+				</Reveal>
+				<Reveal client:load delay={0.2} className="mt-10">
+					<TestimonialsGrid client:load testimonials={testimonials} />
+				</Reveal>
+			</section>
+
+			<section class="mx-auto max-w-5xl px-4 py-16 sm:px-6 lg:px-8">
+				<Reveal client:load>
+					<div class="flex flex-col gap-4 text-center">
+						<Badge variant="secondary" className="mx-auto">FAQ</Badge>
+						<h2 class="text-3xl font-semibold sm:text-4xl">Частые вопросы</h2>
+					</div>
+				</Reveal>
+				<Reveal client:load delay={0.2} className="mt-8">
+					<FaqAccordion client:load faq={faq} />
+				</Reveal>
+			</section>
+
+			<section class="mx-auto max-w-5xl px-4 pb-24 sm:px-6 lg:px-8">
+				<Reveal client:load>
+					<Card className="rounded-3xl border-primary/40 bg-gradient-to-br from-primary/10 via-background to-background/80 p-8 text-center shadow-[0px_25px_90px_rgba(46,70,85,0.25)]">
+						<CardHeader className="space-y-4">
+							<Badge variant="secondary" className="mx-auto w-fit">Готовы подключиться?</Badge>
+							<CardTitle className="text-3xl sm:text-4xl">Получите пробный период прямо сейчас</CardTitle>
+							<CardDescription className="text-base">
+								Перейдите в бота, который выдаст конфиг за 12 секунд.
+							</CardDescription>
+						</CardHeader>
+						<CardContent className="space-y-6">
+							<div class="mx-auto flex max-w-3xl flex-col gap-3 sm:flex-row sm:justify-center">
+								<Button className="h-11 rounded-full px-6">
+									<a href="https://t.me/kitsuravpn" target="_blank" rel="noreferrer">
+										Открыть Telegram-канал
+									</a>
+								</Button>
+								<Button variant="outline" className="h-11 rounded-full px-6">
+									<a href="https://t.me/kitsura_bot" target="_blank" rel="noreferrer">
+										Написать боту
+									</a>
+								</Button>
+							</div>
+							<ul class="flex flex-col gap-2 text-sm text-muted-foreground sm:flex-row sm:justify-center sm:gap-6">
+								{ctaPerks.map((perk) => (
+									<li class="flex items-center justify-center gap-2">
+										<Check className="size-4 text-primary" /> {perk}
+									</li>
+								))}
+							</ul>
+						</CardContent>
+					</Card>
+				</Reveal>
 			</section>
 		</main>
 
