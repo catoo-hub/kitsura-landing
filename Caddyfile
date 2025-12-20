@@ -1,12 +1,11 @@
 {
     email aepstore@yandex.ru
 }
+
 kitsura.fun {
     reverse_proxy app:4321
-
+    
     tls {
-        issuer zerossl {
-            api_key {$ZEROSSL_API_KEY}
-        }
+        issuer zerossl {$ZEROSSL_API_KEY}
     }
 }
