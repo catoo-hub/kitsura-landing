@@ -1,6 +1,6 @@
 {
     email aepstore@yandex.ru
-    cert_issuer zerossl {$ZEROSSL_API_KEY}
+    acme_ca https://acme-staging-v02.api.letsencrypt.org/directory
 }
 
 kitsura.fun {
