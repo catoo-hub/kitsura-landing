@@ -1,3 +1,8 @@
 kitsura.fun {
     reverse_proxy app:4321
+
+    tls {
+        issuer zerossl
+        email aepstore@yandex.ru  # укажите ваш email
+    }
 }
