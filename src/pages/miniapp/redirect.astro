@@ -1,0 +1,147 @@
+---
+import "@/styles/global.css"
+import LightRays from '@/components/LightRays'
+import { buttonVariants } from "@/components/ui/button"
+import { Loader2, AlertCircle, Zap } from "lucide-react"
+import { Card, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
+---
+
+<html lang="ru" class="dark scroll-smooth">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<meta name="generator" content={Astro.generator} />
+		<title>Подключение... — Kitsura</title>
+		<link rel="icon" type="image/png" href="/favicon.png" />
+	</head>
+	<body class="bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden">
+        <div class="fixed inset-0 z-0 pointer-events-none">
+            <LightRays 
+                followMouse={true}
+                mouseInfluence={0} 
+                client:only="react"
+            />
+        </div>
+		<main class="relative z-10 flex-1 flex flex-col items-center justify-center p-4 sm:p-8">
+            <!-- Loading/Redirect Card -->
+            <Card id="loading-card" className="w-full max-w-md border-blue-500/30 bg-card/40 backdrop-blur-xl shadow-[0_0_50px_-12px_rgba(59,130,246,0.2)]">
+                <CardHeader className="text-center">
+                    <div class="mx-auto mb-6 rounded-full bg-blue-500/10 p-4 text-blue-500 w-fit ring-1 ring-blue-500/20 shadow-[0_0_20px_-5px_rgba(59,130,246,0.4)] relative overflow-hidden">
+                        <div class="absolute inset-0 bg-blue-500/20 animate-pulse"></div>
+                        <Zap className="size-10 relative z-10" />
+                    </div>
+                    <CardTitle id="status-title" className="text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">
+                        Подключение...
+                    </CardTitle>
+                    <CardDescription id="status-desc" className="text-lg">
+                        Установка безопасного соединения
+                    </CardDescription>
+                </CardHeader>
+                
+                <div class="px-6 py-2">
+                    <div class="bg-secondary/50 rounded-xl p-6 border border-border/50">
+                        <div class="text-sm text-muted-foreground uppercase tracking-wider font-semibold mb-2 text-center">Перенаправление через</div>
+                        <div class="flex items-center justify-center gap-3 mb-4">
+                            <span id="timer" class="text-5xl font-bold text-blue-500 tabular-nums">10</span>
+                            <span class="text-muted-foreground font-medium">сек</span>
+                        </div>
+                        <div class="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                            <div id="progress-bar" class="h-full bg-blue-500 w-full transition-all duration-1000 ease-linear" style="width: 100%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <CardFooter className="flex flex-col gap-3 pt-6">
+                    <a id="action-button" href="#" class={cn(buttonVariants({ variant: "default" }), "w-full h-12 text-base rounded-xl shadow-lg shadow-blue-500/20 hover:shadow-blue-500/30 transition-all")}>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Подключиться сейчас
+                    </a>
+                    <p class="text-xs text-center text-muted-foreground mt-2">
+                        Если ничего не происходит, нажмите кнопку выше
+                    </p>
+                </CardFooter>
+            </Card>
+
+            <!-- Error Card (Hidden by default) -->
+            <Card id="error-card" className="hidden w-full max-w-md border-red-500/30 bg-card/40 backdrop-blur-xl shadow-[0_0_50px_-12px_rgba(239,68,68,0.2)]">
+                <CardHeader className="text-center">
+                    <div class="mx-auto mb-6 rounded-full bg-red-500/10 p-4 text-red-500 w-fit ring-1 ring-red-500/20 shadow-[0_0_20px_-5px_rgba(239,68,68,0.4)]">
+                        <AlertCircle className="size-10" />
+                    </div>
+                    <CardTitle className="text-3xl font-bold bg-gradient-to-b from-foreground to-foreground/70 bg-clip-text text-transparent">Ошибка подключения</CardTitle>
+                    <CardDescription className="text-lg">
+                        Ссылка для подключения отсутствует или недействительна.
+                    </CardDescription>
+                </CardHeader>
+                <CardFooter className="flex flex-col gap-3 pt-6">
+                    <a href="https://miniapp.kitsura.fun/" class={cn(buttonVariants({ variant: "default" }), "w-full h-12 text-base rounded-xl transition-all")}>
+                        Вернуться в бота
+                    </a>
+                </CardFooter>
+            </Card>
+		</main>
+
+        <script is:inline>
+            // App schemes configuration
+            const appSchemes = [
+                { scheme: 'happ://', id: 'happ', icon: 'H', name: 'Happ' },
+                { scheme: 'flclash://', id: 'flclash', icon: 'F', name: 'FlClash' },
+                { scheme: 'clash://', id: 'clash-meta', icon: 'C', name: 'Clash Meta' },
+                { scheme: 'sing-box://', id: 'sing-box', icon: 'S', name: 'Sing-box' },
+                { scheme: 'v2rayng://', id: 'v2rayng', icon: 'V', name: 'v2rayNG' },
+                { scheme: 'sub://', id: 'shadowrocket', icon: 'R', name: 'Shadowrocket' },
+                { scheme: 'hiddify://', id: 'hiddify', icon: 'H', name: 'Hiddify' }
+            ];
+
+            document.addEventListener('DOMContentLoaded', function() {
+                const urlParams = new URLSearchParams(window.location.search);
+                const redirectTo = urlParams.get('redirect_to');
+                
+                const loadingCard = document.getElementById('loading-card');
+                const errorCard = document.getElementById('error-card');
+                const actionButton = document.getElementById('action-button');
+                const timerEl = document.getElementById('timer');
+                const progressBar = document.getElementById('progress-bar');
+                const statusTitle = document.getElementById('status-title');
+                const statusDesc = document.getElementById('status-desc');
+
+                if (!redirectTo) {
+                    loadingCard.classList.add('hidden');
+                    errorCard.classList.remove('hidden');
+                    return;
+                }
+
+                // Detect app
+                const appInfo = appSchemes.find(a => redirectTo.startsWith(a.scheme));
+                if (appInfo) {
+                    statusDesc.textContent = `Подключение к ${appInfo.name}...`;
+                }
+
+                // Setup button
+                actionButton.href = redirectTo;
+
+                // Timer logic
+                let timerValue = 10;
+                const totalTime = 10;
+                
+                const timerId = setInterval(() => {
+                    timerValue--;
+                    timerEl.textContent = timerValue;
+                    
+                    const progress = (timerValue / totalTime) * 100;
+                    progressBar.style.width = `${progress}%`;
+                    
+                    if (timerValue <= 0) {
+                        clearInterval(timerId);
+                        window.location.href = redirectTo;
+                        // Change button text after timeout
+                        const btnContent = actionButton.innerHTML;
+                        // Remove spinner if present
+                        actionButton.innerHTML = 'Попробовать снова';
+                    }
+                }, 1000);
+            });
+        </script>
+	</body>
+</html>
