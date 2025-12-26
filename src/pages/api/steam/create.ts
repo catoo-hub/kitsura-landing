@@ -1,6 +1,15 @@
 import type { APIRoute } from "astro";
 import { incrementSteamTopups } from "@/lib/stats";
 
+export const GET: APIRoute = async () => {
+  return new Response(
+    JSON.stringify({
+      message: "Steam Topup API is running. Use POST to create an order.",
+    }),
+    { status: 200 }
+  );
+};
+
 export const POST: APIRoute = async ({ request }) => {
   const body = await request.json();
   const { accountName, amount } = body;

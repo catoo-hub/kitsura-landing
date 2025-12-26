@@ -1,7 +1,13 @@
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import {
   Card,
   CardContent,
@@ -162,6 +168,10 @@ export function SteamLanding() {
                 </Button>
               </DialogTrigger>
               <DialogContent className="sm:max-w-[450px] p-0 bg-transparent border-none shadow-none [&>button]:hidden">
+                <DialogTitle className="sr-only">Пополнение Steam</DialogTitle>
+                <DialogDescription className="sr-only">
+                  Форма для пополнения кошелька Steam по логину
+                </DialogDescription>
                 <SteamForm onSuccess={() => setIsOpen(false)} />
               </DialogContent>
             </Dialog>
