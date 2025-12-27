@@ -7,5 +7,5 @@ kitsura.fun {
 }
 
 nekomi.goonmail.ru {
-    reverse_proxy nekomi-app:80
+    reverse_proxy nekomi-app:8080
 }
