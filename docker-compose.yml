@@ -17,6 +17,9 @@ services:
       - caddy_config:/config
     env_file:
       - .env
+    networks:
+      - default
+      - shared_web
 
 volumes:
   caddy_data:
@@ -27,3 +30,5 @@ networks:
     driver: bridge
     driver_opts:
       com.docker.network.driver.mtu: 1450
+  shared_web:
+    external: true
