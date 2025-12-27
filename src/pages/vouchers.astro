@@ -1,6 +1,6 @@
 ---
 import "@/styles/global.css"
-import { SteamLanding } from "@/components/steam-landing"
+import { VouchersLanding } from "@/components/vouchers-landing"
 import GradualBlur from '@/components/GradualBlur'
 import { ArrowLeft } from "lucide-react"
 import { buttonVariants } from "@/components/ui/button"
@@ -12,14 +12,14 @@ import { cn } from "@/lib/utils"
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<meta name="generator" content={Astro.generator} />
-		<title>Пополнение Steam — Kitsura</title>
+		<title>Магазин Ваучеров — Kitsura</title>
 		<meta
 			name="description"
-			content="Моментальное пополнение кошелька Steam. Низкая комиссия, безопасно."
+			content="Покупка подарочных карт Steam, Spotify, iTunes, Valorant и других сервисов. Моментальная доставка."
 		/>
 		<link rel="icon" type="image/png" href="/favicon.png" />
 	</head>
-	<body class="bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden selection:bg-primary/30">
+	<body class="bg-background text-foreground min-h-screen flex flex-col overflow-x-hidden selection:bg-purple-500/30">
         
         <header class="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-background/5 border-b border-white/5">
 			<div class="container mx-auto flex items-center justify-between px-4 py-4 sm:px-6 lg:px-8">
@@ -28,9 +28,9 @@ import { cn } from "@/lib/utils"
 					<span class="font-semibold text-lg tracking-tight">Kitsura</span>
 				</a>
                 <div class="flex items-center gap-2">
-                    <a href="/vouchers" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-purple-500/20 hover:bg-purple-500/10 hover:text-purple-400 transition-colors")}>
-                        Магазин Ваучеров
-                    </a>
+                    <a href="/steam" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors")}>
+						Пополнение Steam
+					</a>
                     <a href="/" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors")}>
                         <ArrowLeft className="size-4" />
                         Назад
@@ -40,7 +40,7 @@ import { cn } from "@/lib/utils"
 		</header>
 
 		<main class="relative overflow-hidden">
-            <SteamLanding client:load />
+            <VouchersLanding client:load />
 		</main>
 
         <GradualBlur

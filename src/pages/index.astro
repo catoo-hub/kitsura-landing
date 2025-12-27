@@ -234,9 +234,14 @@ const ctaPerks = [
 					<img src="/favicon.png" alt="Kitsura Logo" class="size-8 grayscale brightness-125" />
 					<span class="font-semibold text-lg tracking-tight">Kitsura</span>
 				</div>
-				<a href="/steam" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors")}>
-					Пополнение Steam
-				</a>
+				<div class="flex items-center gap-2">
+					<a href="/vouchers" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-purple-500/20 hover:bg-purple-500/10 hover:text-purple-400 transition-colors")}>
+						Магазин Ваучеров
+					</a>
+					<a href="/steam" class={cn(buttonVariants({ variant: "ghost", size: "sm" }), "rounded-full border-primary/20 hover:bg-primary/10 hover:text-primary transition-colors")}>
+						Пополнение Steam
+					</a>
+				</div>
 			</div>
 		</header>
 		<main class="relative overflow-hidden">

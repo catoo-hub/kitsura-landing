@@ -7,7 +7,7 @@ import {
 
 interface FaqItem {
   question: string;
-  answer: string;
+  answer: React.ReactNode;
 }
 
 interface FaqAccordionProps {

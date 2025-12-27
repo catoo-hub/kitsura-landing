@@ -193,6 +193,50 @@ export function SteamLanding() {
         </Card>
       </section>
 
+      {/* Vouchers Promo Block */}
+      <section className="container mx-auto px-4 py-6 sm:px-6 lg:px-8">
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          whileInView={{ opacity: 1, scale: 1 }}
+          viewport={{ once: true }}
+        >
+          <a href="/vouchers" className="block group">
+            <Card className="relative overflow-hidden border-purple-500/30 bg-gradient-to-r from-purple-500/10 to-pink-500/10 hover:from-purple-500/20 hover:to-pink-500/20 transition-all duration-300">
+              <div className="absolute inset-0 bg-grid-white/5 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))]" />
+              <CardContent className="relative p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="flex flex-col gap-2 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-2 text-purple-400">
+                    <Badge
+                      variant="outline"
+                      className="border-purple-500/50 text-purple-400"
+                    >
+                      Новинка
+                    </Badge>
+                    <span className="text-sm font-medium">
+                      Магазин цифровых товаров
+                    </span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-white">
+                    Нужны коды пополнения или подписки?
+                  </h3>
+                  <p className="text-muted-foreground max-w-xl">
+                    Покупайте ваучеры Steam (Турция, США, Европа), Spotify,
+                    iTunes, Valorant и сотни других сервисов с моментальной
+                    доставкой на почту.
+                  </p>
+                </div>
+                <Button
+                  size="lg"
+                  className="bg-purple-600 hover:bg-purple-700 text-white shadow-lg shadow-purple-500/20 shrink-0 group-hover:scale-105 transition-transform"
+                >
+                  Перейти в магазин <Globe className="ml-2 size-4" />
+                </Button>
+              </CardContent>
+            </Card>
+          </a>
+        </motion.div>
+      </section>
+
       {/* Features Grid */}
       <section className="container mx-auto space-y-10 px-4 py-16 sm:px-6 lg:px-8">
         <div className="flex flex-col gap-4 text-center">
