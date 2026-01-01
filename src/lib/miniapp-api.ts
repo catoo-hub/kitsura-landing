@@ -87,7 +87,11 @@ export interface PurchaseOptions {
   };
 }
 
-import { MOCK_USER_DATA, MOCK_PAYMENT_METHODS, MOCK_PURCHASE_OPTIONS } from "./mock-data";
+import {
+  MOCK_USER_DATA,
+  MOCK_PAYMENT_METHODS,
+  MOCK_PURCHASE_OPTIONS,
+} from "./mock-data";
 
 const API_BASE = "https://miniapp.kitsura.fun/miniapp";
 
@@ -189,11 +193,14 @@ export const miniappApi = {
         return MOCK_PURCHASE_OPTIONS;
       }
 
-      const response = await fetch(`${API_BASE}/subscription/purchase/options`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ initData }),
-      });
+      const response = await fetch(
+        `${API_BASE}/subscription/purchase/options`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ initData }),
+        }
+      );
 
       if (!response.ok) {
         return MOCK_PURCHASE_OPTIONS;

@@ -11,7 +11,8 @@ export const MOCK_USER_DATA: UserData = {
   },
   balance: 1500,
   balance_currency: "RUB",
-  subscription_url: "vless://uuid@1.2.3.4:443?security=reality&sni=google.com&fp=chrome&pbk=public_key&sid=short_id&type=grpc&serviceName=grpc#KitsuraVPN",
+  subscription_url:
+    "vless://uuid@1.2.3.4:443?security=reality&sni=google.com&fp=chrome&pbk=public_key&sid=short_id&type=grpc&serviceName=grpc#KitsuraVPN",
   subscription_crypto_link: "https://example.com/crypto-config",
   subscription_missing: false,
   autopay: true,
@@ -79,10 +80,34 @@ export const MOCK_PURCHASE_OPTIONS = {
   ],
   servers: {
     available: [
-      { uuid: "ru", name: "Russia", country_code: "RU", flag: "🇷🇺", price_kopeks: 0 },
-      { uuid: "nl", name: "Netherlands", country_code: "NL", flag: "🇳🇱", price_kopeks: 0 },
-      { uuid: "de", name: "Germany", country_code: "DE", flag: "🇩🇪", price_kopeks: 0 },
-      { uuid: "us", name: "USA", country_code: "US", flag: "🇺🇸", price_kopeks: 0 },
+      {
+        uuid: "ru",
+        name: "Russia",
+        country_code: "RU",
+        flag: "🇷🇺",
+        price_kopeks: 0,
+      },
+      {
+        uuid: "nl",
+        name: "Netherlands",
+        country_code: "NL",
+        flag: "🇳🇱",
+        price_kopeks: 0,
+      },
+      {
+        uuid: "de",
+        name: "Germany",
+        country_code: "DE",
+        flag: "🇩🇪",
+        price_kopeks: 0,
+      },
+      {
+        uuid: "us",
+        name: "USA",
+        country_code: "US",
+        flag: "🇺🇸",
+        price_kopeks: 0,
+      },
     ],
     min: 1,
     max: 5,
