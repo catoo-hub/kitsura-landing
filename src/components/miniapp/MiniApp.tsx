@@ -216,27 +216,26 @@ const HomeTab = ({
             </p>
           )}
 
-          <Button
-            className="w-full shadow-lg shadow-primary/20"
-            size="lg"
-            onClick={
-              hasActiveSubscription
-                ? () => {
+                <Button
+                  className="w-full shadow-lg shadow-primary/20"
+                  size="lg"
+                  onClick={() => {
                     const redirectBase =
                       "https://kitsura.fun/miniapp/redirect?redirect_to=";
-                    if (userData.subscription_url) {
-                      window.location.href =
-                        redirectBase +
-                        encodeURIComponent(userData.subscription_url);
-                    } else {
+                    const target = hasActiveSubscription
+                      ? userData.subscription_url || userData.subscriptionUrl
+                      : userData.purchase_url || userData.purchaseUrl;
+                    if (target) {
+                      window.location.href = redirectBase + encodeURIComponent(target);
+                    } else if (hasActiveSubscription) {
                       onOpenInstructions?.();
+                    } else {
+                      onNavigate?.("subscription");
                     }
-                  }
-                : () => onNavigate?.("subscription")
-            }
-          >
-            {hasActiveSubscription ? "Настроить VPN" : "Подключить VPN"}
-          </Button>
+                  }}
+                >
+                  {hasActiveSubscription ? "Настроить VPN" : "Добавить подписку"}
+                </Button>
 
           {userData.trial_available && !hasActiveSubscription && (
             <Button
@@ -1000,15 +999,22 @@ const SettingsTab = ({
               </span>
               <div className="flex gap-2">
                 <code className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                  {userData.referral.link || "Ссылка недоступна"}
+                  {userData.referral.link ||
+                    (userData.referral as any).referral_link ||
+                    (userData.referral as any).referral_code ||
+                    "Ссылка недоступна"}
                 </code>
                 <Button
                   size="icon"
                   variant="outline"
                   className="shrink-0"
                   onClick={() => {
-                    if (userData.referral?.link) {
-                      navigator.clipboard.writeText(userData.referral!.link);
+                    const linkValue =
+                      userData.referral?.link ||
+                      (userData.referral as any).referral_link ||
+                      (userData.referral as any).referral_code;
+                    if (linkValue) {
+                      navigator.clipboard.writeText(linkValue);
                       toast.success("Ссылка скопирована");
                     }
                   }}
@@ -1016,10 +1022,12 @@ const SettingsTab = ({
                   <Copy className="size-4" />
                 </Button>
               </div>
-              {userData.referral?.percent && (
+              {(userData.referral?.percent ||
+                (userData.referral as any)?.friend_bonus_percent) && (
                 <p className="text-xs text-muted-foreground">
-                  Бонус: {userData.referral.percent}% с пополнений друзей. Им и
-                  вам начисляется бонус.
+                  Бонус: {userData.referral.percent ||
+                    (userData.referral as any)?.friend_bonus_percent}% с
+                  пополнений друзей. Им и вам начисляется бонус.
                 </p>
               )}
               <p className="text-xs text-muted-foreground mt-1">
@@ -1040,15 +1048,22 @@ const SettingsTab = ({
               <h4 className="font-medium mb-2">Ваша ссылка</h4>
               <div className="flex gap-2">
                 <code className="flex-1 bg-background rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap border border-border">
-                  {userData.referral?.link || "Ссылка недоступна"}
+                  {userData.referral?.link ||
+                    (userData.referral as any).referral_link ||
+                    (userData.referral as any).referral_code ||
+                    "Ссылка недоступна"}
                 </code>
                 <Button
                   size="icon"
                   variant="outline"
                   className="shrink-0"
                   onClick={() => {
-                    if (userData.referral?.link) {
-                      navigator.clipboard.writeText(userData.referral.link);
+                    const linkValue =
+                      userData.referral?.link ||
+                      (userData.referral as any).referral_link ||
+                      (userData.referral as any).referral_code;
+                    if (linkValue) {
+                      navigator.clipboard.writeText(linkValue);
                       toast.success("Ссылка скопирована");
                     }
                   }}
@@ -1077,7 +1092,9 @@ const SettingsTab = ({
               Приглашайте друзей и получайте
               {userData.referral?.percent
                 ? ` ${userData.referral.percent}%`
-                : " бонус"}{" "}
+                : (userData.referral as any)?.friend_bonus_percent
+                ? ` ${(userData.referral as any).friend_bonus_percent}%`
+                : " бонус"} {""}
               от их платежей на свой баланс.
             </p>
           </div>
@@ -1094,7 +1111,9 @@ const SettingsTab = ({
               const termsUrl =
                 appConfig?.config?.branding?.termsUrl ||
                 appConfig?.branding?.termsUrl ||
-                `${API_BASE}/terms`;
+                `${API_BASE}/terms` ||
+                `${API_BASE}/miniapp/terms` ||
+                "https://kitsura.fun/terms";
               return termsUrl ? (
                 <iframe
                   src={termsUrl}

@@ -1379,19 +1379,42 @@ export function normalizeUserData(payload: any): any {
       null,
   };
   if (userData.referral) {
-    userData.referral.link =
+    const referralSource = payload.referral || {};
+    userData.referral.referral_link =
+      userData.referral.referral_link ||
       userData.referral.link ||
       userData.referral.url ||
       userData.referral.href ||
+      referralSource.referral_link ||
+      referralSource.link ||
       payload.referral_link ||
       payload.referralUrl ||
       payload.referral_url ||
       null;
+    userData.referral.link = userData.referral.referral_link;
+
+    userData.referral.referral_code =
+      userData.referral.referral_code ||
+      referralSource.referral_code ||
+      payload.referral_code ||
+      null;
+
     userData.referral.percent =
       userData.referral.percent ||
       userData.referral.bonus_percent ||
+      referralSource.bonus_percent ||
+      referralSource.percent ||
       payload.referral_percent ||
       payload.referralPercent ||
+      referralSource.reward_percent ||
+      referralSource.rewardPercent ||
+      null;
+
+    userData.referral.friend_bonus_percent =
+      userData.referral.friend_bonus_percent ||
+      referralSource.friend_bonus_percent ||
+      referralSource.friendPercent ||
+      referralSource.friend_reward_percent ||
       null;
   }
 

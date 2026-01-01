@@ -155,9 +155,16 @@ export function useSubscriptionPurchase(
       setPreviewError(null);
 
       try {
+        const subscriptionId =
+          data?.subscriptionId ||
+          userData?.subscription_id ||
+          userData?.subscriptionId ||
+          null;
+
         const payload = {
           initData,
-          subscription_id: userData?.subscription_url ? "existing" : null, // Mock ID logic
+          subscription_id: subscriptionId,
+          subscriptionId,
           selection: selectionPayload,
           ...selectionPayload,
         };
@@ -205,7 +212,8 @@ export function useSubscriptionPurchase(
   }, []);
 
   const selectTraffic = useCallback((value: number) => {
-    setSelections((prev) => ({ ...prev, trafficValue: value }));
+    const numeric = Number.isFinite(value as any) ? Number(value) : Number(value);
+    setSelections((prev) => ({ ...prev, trafficValue: numeric }));
   }, []);
 
   const toggleServer = useCallback((uuid: string) => {
@@ -256,9 +264,16 @@ export function useSubscriptionPurchase(
 
       setSubmitting(true);
       try {
+        const subscriptionId =
+          data?.subscriptionId ||
+          userData?.subscription_id ||
+          userData?.subscriptionId ||
+          null;
+
         const payload = {
           initData,
-          subscription_id: userData?.subscription_url ? "existing" : null,
+          subscription_id: subscriptionId,
+          subscriptionId,
           selection: selectionPayload,
           ...selectionPayload,
         };
