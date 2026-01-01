@@ -1,4 +1,4 @@
-import type { UserData, PaymentMethod } from "./miniapp-api";
+import type { UserData, PaymentMethod } from "./types";
 
 export const MOCK_USER_DATA: UserData = {
   user: {

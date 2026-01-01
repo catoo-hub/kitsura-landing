@@ -6,7 +6,7 @@ import {
   parseJsonSafe,
   isSameSet,
 } from "@/lib/legacy-logic";
-import { UserData } from "@/lib/miniapp-api";
+import { UserData } from "@/lib/types";
 
 export interface SubscriptionSettingsSelections {
   servers: Set<string>;

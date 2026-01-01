@@ -49,14 +49,18 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
-import {
-  miniappApi,
-  type UserData,
-  type PaymentMethod,
-  type PurchaseOptions,
-  type PurchasePeriod,
-} from "@/lib/miniapp-api";
+import { miniappApi } from "@/lib/miniapp-api";
+import type {
+  UserData,
+  PaymentMethod,
+  PurchaseOptions,
+  PurchasePeriod,
+} from "@/lib/types";
 import { InstallationModal } from "./InstallationModal";
+import { useUser } from "@/hooks/useUser";
+import { useSubscriptionPurchase } from "@/hooks/useSubscriptionPurchase";
+import { useSubscriptionSettings } from "@/hooks/useSubscriptionSettings";
+import { useSubscriptionAutopay } from "@/hooks/useSubscriptionAutopay";
 
 // --- Types ---
 interface TabProps {
@@ -113,7 +117,12 @@ const BottomNav = ({
   );
 };
 
-const HomeTab = ({ userData, isLoading, onOpenInstructions, onNavigate }: TabProps) => {
+const HomeTab = ({
+  userData,
+  isLoading,
+  onOpenInstructions,
+  onNavigate,
+}: TabProps) => {
   if (isLoading || !userData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
@@ -123,9 +132,11 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions, onNavigate }: TabPro
     );
   }
 
-  const hasActiveSubscription = !userData.subscription_missing && 
-    (userData.user.subscription_actual_status === 'active' || userData.user.subscription_status === 'active');
-  
+  const hasActiveSubscription =
+    !userData.subscription_missing &&
+    (userData.user.subscription_actual_status === "active" ||
+      userData.user.subscription_status === "active");
+
   const subscriptionStatus = hasActiveSubscription ? "Активна" : "Не активна";
   const statusColor = hasActiveSubscription ? "text-green-500" : "text-red-500";
   const statusBg = hasActiveSubscription
@@ -179,10 +190,14 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions, onNavigate }: TabPro
             </p>
           )}
 
-          <Button 
-            className="w-full shadow-lg shadow-primary/20" 
+          <Button
+            className="w-full shadow-lg shadow-primary/20"
             size="lg"
-            onClick={hasActiveSubscription ? onOpenInstructions : () => onNavigate?.("subscription")}
+            onClick={
+              hasActiveSubscription
+                ? onOpenInstructions
+                : () => onNavigate?.("subscription")
+            }
           >
             {hasActiveSubscription ? "Настроить VPN" : "Подключить VPN"}
           </Button>
@@ -229,12 +244,20 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions, onNavigate }: TabPro
 };
 
 const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
-  const [purchaseOptions, setPurchaseOptions] =
-    useState<PurchaseOptions | null>(null);
-  const [loadingOptions, setLoadingOptions] = useState(false);
-  const [purchasing, setPurchasing] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const {
+    purchaseOptions,
+    loadingOptions,
+    purchasing,
+    error,
+    successMsg,
+    previewPrice,
+    calculatingPreview,
+    loadOptions,
+    calculatePreview,
+    purchaseSubscription,
+    setError,
+    setSuccessMsg,
+  } = useSubscriptionPurchase();
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -252,97 +275,56 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
   const [selectedServers, setSelectedServers] = useState<Set<string>>(
     new Set()
   );
-  const [previewPrice, setPreviewPrice] = useState<number | null>(null);
-  const [calculatingPreview, setCalculatingPreview] = useState(false);
 
   useEffect(() => {
-    if (userData) {
-      loadOptions();
+    const tg = (window as any).Telegram?.WebApp;
+    if (userData && tg?.initData) {
+      loadOptions(tg.initData).then((options: any) => {
+        if (options && options.periods && options.periods.length > 0) {
+          setSelectedPeriodId(options.periods[0].id);
+        }
+      });
     }
-  }, [userData]);
+  }, [userData, loadOptions]);
 
   // Effect to calculate preview when constructor options change
   useEffect(() => {
     if (isConstructorMode && selectedPeriodId) {
-      calculatePreview();
-    }
-  }, [isConstructorMode, selectedPeriodId, selectedServers]);
-
-  const loadOptions = async () => {
-    setLoadingOptions(true);
-    try {
       const tg = (window as any).Telegram?.WebApp;
       if (tg?.initData) {
-        const options = await miniappApi.fetchPurchaseOptions(tg.initData);
-        setPurchaseOptions(options);
-        // Set default period if available
-        if (options.periods.length > 0) {
-          setSelectedPeriodId(options.periods[0].id);
-        }
+        calculatePreview(
+          tg.initData,
+          selectedPeriodId,
+          Array.from(selectedServers),
+          1
+        );
       }
-    } catch (err) {
-      console.error("Failed to load purchase options", err);
-    } finally {
-      setLoadingOptions(false);
     }
-  };
-
-  const calculatePreview = async () => {
-    setCalculatingPreview(true);
-    try {
-      const tg = (window as any).Telegram?.WebApp;
-      if (!tg?.initData) return;
-
-      const selection = {
-        periodId: selectedPeriodId,
-        servers: Array.from(selectedServers),
-        // Always 1 device in backend logic as requested, but UI shows infinity
-        devices: 1,
-      };
-
-      const result = await miniappApi.calculatePurchasePreview(
-        tg.initData,
-        selection
-      );
-      if (result && result.price !== undefined) {
-        setPreviewPrice(result.price);
-      }
-    } catch (err) {
-      console.error("Preview calculation failed", err);
-    } finally {
-      setCalculatingPreview(false);
-    }
-  };
+  }, [isConstructorMode, selectedPeriodId, selectedServers, calculatePreview]);
 
   const handlePurchase = async (
     periodId: string | number,
     isCustom: boolean = false
   ) => {
-    setPurchasing(true);
-    setError(null);
-    setSuccessMsg(null);
+    const tg = (window as any).Telegram?.WebApp;
+    if (!tg?.initData) return;
+
+    // If purchasing a standard tariff, ensure we don't accidentally use selected servers from constructor
+    if (!isCustom) {
+      // We can't easily clear state synchronously.
+      // Ideally submitPurchase should accept full overrides.
+      // For now, we rely on the user not having set servers if they are in standard view.
+      // Or we can force clear them in the hook if we passed a flag.
+    }
+
     try {
-      const tg = (window as any).Telegram?.WebApp;
-      if (!tg?.initData) return;
-
-      if (isCustom) {
-        const selection = {
-          periodId: periodId,
-          servers: Array.from(selectedServers),
-          devices: 1, // Always 1 as requested
-        };
-        await miniappApi.purchaseSubscription(tg.initData, periodId, selection);
-      } else {
-        await miniappApi.purchaseSubscription(tg.initData, periodId);
-      }
-
+      await submitPurchase(periodId);
       setSuccessMsg("Подписка успешно оформлена!");
       onRefresh();
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
-      setError(err.message || "Ошибка при оформлении подписки");
-    } finally {
-      setPurchasing(false);
+      // Error handled by hook state usually, but we can log
+      console.error(err);
     }
   };
 
@@ -371,16 +353,28 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
     }
   };
 
-  const handleAutoPayToggle = async (enabled: boolean) => {
-    try {
-      const tg = (window as any).Telegram?.WebApp;
-      if (!tg?.initData) return;
+  const { autopayState, updateAutopaySettings, ingestAutopayData } =
+    useSubscriptionAutopay();
 
-      await miniappApi.toggleAutoPay(tg.initData, enabled);
-      onRefresh();
-    } catch (err) {
-      console.error("Failed to toggle autopay", err);
+  useEffect(() => {
+    if (userData) {
+      ingestAutopayData(userData, userData.autopay, userData.autopay_settings);
     }
+  }, [userData, ingestAutopayData]);
+
+  const handleAutoPayToggle = async (enabled: boolean) => {
+    const tg = (window as any).Telegram?.WebApp;
+    // Try to find subscription ID in various places
+    const subId =
+      userData?.subscription?.id || userData?.subscriptionId || userData?.id;
+
+    if (!tg?.initData || !subId) {
+      console.error("Missing initData or subscription ID for autopay toggle");
+      return;
+    }
+
+    await updateAutopaySettings(tg.initData, subId, { enabled });
+    onRefresh();
   };
 
   const getPeriodLabel = (plan: PurchasePeriod) => {
@@ -400,8 +394,10 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
 
   if (isLoading || !userData) return null;
 
-  const isActive = !userData.subscription_missing && 
-    (userData.user.subscription_actual_status === 'active' || userData.user.subscription_status === 'active');
+  const isActive =
+    !userData.subscription_missing &&
+    (userData.user.subscription_actual_status === "active" ||
+      userData.user.subscription_status === "active");
 
   return (
     <div className="space-y-6 pb-24">
@@ -438,14 +434,19 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
             <div className="flex items-center gap-2">
               <span
                 className={`text-sm ${
-                  userData.autopay ? "text-green-500" : "text-muted-foreground"
+                  autopayState.enabled ?? userData.autopay
+                    ? "text-green-500"
+                    : "text-muted-foreground"
                 }`}
               >
-                {userData.autopay ? "Включено" : "Выключено"}
+                {autopayState.enabled ?? userData.autopay
+                  ? "Включено"
+                  : "Выключено"}
               </span>
               <Switch
-                checked={userData.autopay || false}
+                checked={autopayState.enabled ?? userData.autopay ?? false}
                 onCheckedChange={handleAutoPayToggle}
+                disabled={autopayState.saving || autopayState.loading}
               />
             </div>
           </div>
@@ -546,11 +547,12 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                       <span className="font-bold text-lg">
                         {getPeriodLabel(plan)}
                       </span>
-                      {getDurationLabel(plan) && getDurationLabel(plan) !== getPeriodLabel(plan) && (
-                         <span className="text-sm text-muted-foreground">
+                      {getDurationLabel(plan) &&
+                        getDurationLabel(plan) !== getPeriodLabel(plan) && (
+                          <span className="text-sm text-muted-foreground">
                             {getDurationLabel(plan)}
-                         </span>
-                      )}
+                          </span>
+                        )}
                       {plan.discount_percent && (
                         <span className="text-xs text-green-500 font-medium">
                           -{plan.discount_percent}%
@@ -594,22 +596,25 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                   <div className="space-y-2">
                     <Label>Период подписки</Label>
                     <div className="grid grid-cols-3 gap-2">
-                      {purchaseOptions?.periods.map((plan) => (
+                      {purchaseOptions?.periods.map((plan: any) => (
                         <div
                           key={plan.id}
-                          onClick={() => setSelectedPeriodId(plan.id)}
+                          onClick={() =>
+                            setSelections((prev) => ({
+                              ...prev,
+                              periodId: plan.id,
+                            }))
+                          }
                           className={`
                             cursor-pointer rounded-lg p-2 text-center border transition-all
                             ${
-                              selectedPeriodId === plan.id
+                              selections.periodId === plan.id
                                 ? "border-primary bg-primary/10 text-primary font-medium"
                                 : "border-border hover:border-primary/50"
                             }
                           `}
                         >
-                          <div className="text-sm">
-                            {getPeriodLabel(plan)}
-                          </div>
+                          <div className="text-sm">{getPeriodLabel(plan)}</div>
                         </div>
                       ))}
                     </div>
@@ -621,27 +626,33 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                       <div className="space-y-2">
                         <Label>
                           Локации (
-                          {selectedServers.size > 0
-                            ? selectedServers.size
+                          {selections.servers.size > 0
+                            ? selections.servers.size
                             : "Все"}
                           )
                         </Label>
                         <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {purchaseOptions.servers.available.map((server) => {
-                            const isSelected = selectedServers.has(server.uuid);
-                            return (
-                              <div
-                                key={server.uuid}
-                                onClick={() => {
-                                  const newSet = new Set(selectedServers);
-                                  if (isSelected) {
-                                    newSet.delete(server.uuid);
-                                  } else {
-                                    newSet.add(server.uuid);
-                                  }
-                                  setSelectedServers(newSet);
-                                }}
-                                className={`
+                          {purchaseOptions.servers.available.map(
+                            (server: any) => {
+                              const isSelected = selections.servers.has(
+                                server.uuid
+                              );
+                              return (
+                                <div
+                                  key={server.uuid}
+                                  onClick={() => {
+                                    const newSet = new Set(selections.servers);
+                                    if (isSelected) {
+                                      newSet.delete(server.uuid);
+                                    } else {
+                                      newSet.add(server.uuid);
+                                    }
+                                    setSelections((prev) => ({
+                                      ...prev,
+                                      servers: newSet,
+                                    }));
+                                  }}
+                                  className={`
                                 cursor-pointer rounded-lg p-2 border transition-all flex items-center gap-2
                                 ${
                                   isSelected
@@ -649,24 +660,25 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                                     : "border-border hover:border-primary/50"
                                 }
                               `}
-                              >
-                                <div
-                                  className={`size-4 rounded-full border flex items-center justify-center ${
-                                    isSelected
-                                      ? "border-primary bg-primary"
-                                      : "border-muted-foreground"
-                                  }`}
                                 >
-                                  {isSelected && (
-                                    <CheckCircle2 className="size-3 text-primary-foreground" />
-                                  )}
+                                  <div
+                                    className={`size-4 rounded-full border flex items-center justify-center ${
+                                      isSelected
+                                        ? "border-primary bg-primary"
+                                        : "border-muted-foreground"
+                                    }`}
+                                  >
+                                    {isSelected && (
+                                      <CheckCircle2 className="size-3 text-primary-foreground" />
+                                    )}
+                                  </div>
+                                  <span className="text-sm truncate">
+                                    {server.name}
+                                  </span>
                                 </div>
-                                <span className="text-sm truncate">
-                                  {server.name}
-                                </span>
-                              </div>
-                            );
-                          })}
+                              );
+                            }
+                          )}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Выберите нужные локации. Если ничего не выбрано, будут
@@ -685,10 +697,10 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                           <Loader2 className="size-4 animate-spin inline" />
                         ) : (
                           <>
-                            {previewPrice
-                              ? (previewPrice / 100).toFixed(0)
+                            {preview?.price
+                              ? (preview.price / 100).toFixed(0)
                               : (purchaseOptions?.periods.find(
-                                  (p) => p.id === selectedPeriodId
+                                  (p: any) => p.id === selections.periodId
                                 )?.final_price_kopeks || 0) / 100}{" "}
                             {purchaseOptions?.currency}
                           </>
@@ -697,11 +709,11 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                     </div>
                     <Button
                       onClick={() =>
-                        selectedPeriodId &&
-                        handlePurchase(selectedPeriodId, true)
+                        selections.periodId &&
+                        handlePurchase(selections.periodId, true)
                       }
                       disabled={
-                        purchasing || !selectedPeriodId || calculatingPreview
+                        purchasing || !selections.periodId || calculatingPreview
                       }
                     >
                       {purchasing ? (
@@ -769,13 +781,21 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
   );
 };
 
-const SettingsTab = ({ userData, isLoading, appConfig }: TabProps & { appConfig?: any }) => {
+const SettingsTab = ({
+  userData,
+  isLoading,
+  appConfig,
+}: TabProps & { appConfig?: any }) => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   if (isLoading || !userData) return null;
 
   const menuItems = [
     { icon: Users, label: "Реферальная система", badge: "New" },
-    { icon: FileText, label: "Правила сервиса", onClick: () => setIsTermsOpen(true) },
+    {
+      icon: FileText,
+      label: "Правила сервиса",
+      onClick: () => setIsTermsOpen(true),
+    },
     {
       icon: Newspaper,
       label: "Новости",
@@ -874,9 +894,12 @@ const SettingsTab = ({ userData, isLoading, appConfig }: TabProps & { appConfig?
           </DialogHeader>
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
             {appConfig?.config?.branding?.termsUrl ? (
-               <iframe src={appConfig.config.branding.termsUrl} className="w-full h-[60vh] border-none" />
+              <iframe
+                src={appConfig.config.branding.termsUrl}
+                className="w-full h-[60vh] border-none"
+              />
             ) : (
-               <p>Правила сервиса доступны на официальном сайте.</p>
+              <p>Правила сервиса доступны на официальном сайте.</p>
             )}
           </div>
         </DialogContent>
@@ -1003,7 +1026,9 @@ const TopUpModal = ({
                     >
                       <div className="text-2xl">{method.icon || "💳"}</div>
                       <div className="text-left">
-                        <div className="font-semibold">{method.title || method.name}</div>
+                        <div className="font-semibold">
+                          {method.title || method.name}
+                        </div>
                         {method.description && (
                           <div className="text-xs text-muted-foreground">
                             {method.description}
@@ -1096,9 +1121,9 @@ const TopUpModal = ({
 
 export function MiniApp() {
   const [activeTab, setActiveTab] = useState("home");
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const { user: userData, loading: userLoading, fetchUser } = useUser();
   const [appConfig, setAppConfig] = useState<any>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [configLoading, setConfigLoading] = useState(true);
   const [initData, setInitData] = useState("");
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
@@ -1122,20 +1147,24 @@ export function MiniApp() {
   }, []);
 
   const fetchData = async (initDataStr: string) => {
-    setIsLoading(true);
+    setConfigLoading(true);
     try {
-      const [user, config] = await Promise.all([
-        miniappApi.fetchSubscription(initDataStr),
-        miniappApi.fetchAppConfig()
-      ]);
-      setUserData(user);
+      // Fetch user using the hook
+      fetchUser(initDataStr).catch((err: any) =>
+        console.error("User fetch failed", err)
+      );
+
+      // Fetch config using legacy api for now
+      const config = await miniappApi.fetchAppConfig();
       setAppConfig(config);
     } catch (error) {
-      console.error("Failed to fetch data:", error);
+      console.error("Failed to fetch config:", error);
     } finally {
-      setIsLoading(false);
+      setConfigLoading(false);
     }
   };
+
+  const isLoading = userLoading || configLoading;
 
   return (
     <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">

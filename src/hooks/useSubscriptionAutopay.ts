@@ -4,7 +4,7 @@ import {
   mergeAutopaySources,
   normalizeAutopayPayload,
   parseJsonSafe,
-} from "../lib/legacy-logic";
+} from "@/lib/legacy-logic";
 
 export function useSubscriptionAutopay() {
   const [state, setState] = useState<

@@ -13,7 +13,7 @@ import {
   parseJsonSafe,
   t,
 } from "@/lib/legacy-logic";
-import { UserData } from "@/lib/miniapp-api";
+import { UserData } from "@/lib/types";
 
 export interface SubscriptionPurchaseSelections {
   periodId: string | null;
@@ -201,44 +201,63 @@ export function useSubscriptionPurchase(
     setSelections((prev) => ({ ...prev, devices: count }));
   }, []);
 
-  const submitPurchase = useCallback(async () => {
-    if (submitting || !data || !initData) return;
+  const submitPurchase = useCallback(
+    async (periodId?: string | number) => {
+      if (submitting || !data || !initData) return;
 
-    const period = getSelectedPeriod();
-    if (!period) return;
-
-    const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
-      period,
-      selections
-    );
-
-    setSubmitting(true);
-    try {
-      const payload = {
-        initData,
-        subscription_id: userData?.subscription_url ? "existing" : null,
-        selection: selectionPayload,
-        ...selectionPayload,
-      };
-
-      const response = await fetch("/miniapp/subscription/purchase", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      });
-      const body = await parseJsonSafe(response);
-      if (!response.ok || (body && body.success === false)) {
-        throw createError("Error", extractSettingsError(body, response.status));
+      let period;
+      if (periodId) {
+        period = data.periods.find(
+          (p: any) => resolvePurchasePeriodId(p) === String(periodId)
+        );
+      } else {
+        period = getSelectedPeriod();
       }
 
-      // Success
-      return body;
-    } catch (err) {
-      throw err;
-    } finally {
-      setSubmitting(false);
-    }
-  }, [submitting, data, initData, getSelectedPeriod, selections, userData]);
+      if (!period) return;
+
+      const effectiveSelections = { ...selections };
+      if (periodId) {
+        effectiveSelections.periodId = String(periodId);
+      }
+
+      const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
+        period,
+        effectiveSelections
+      );
+
+      setSubmitting(true);
+      try {
+        const payload = {
+          initData,
+          subscription_id: userData?.subscription_url ? "existing" : null,
+          selection: selectionPayload,
+          ...selectionPayload,
+        };
+
+        const response = await fetch("/miniapp/subscription/purchase", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        const body = await parseJsonSafe(response);
+        if (!response.ok || (body && body.success === false)) {
+          throw createError(
+            "Error",
+            extractSettingsError(body, response.status)
+          );
+        }
+
+        // Success
+        return body;
+      } catch (err) {
+        throw err;
+      } finally {
+        setSubmitting(false);
+      }
+    },
+    [submitting, data, initData, getSelectedPeriod, selections, userData]
+  );
 
   return {
     data,
