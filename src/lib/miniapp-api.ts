@@ -87,7 +87,7 @@ export interface PurchaseOptions {
   };
 }
 
-const API_BASE = "/miniapp";
+const API_BASE = "https://miniapp.kitsura.fun/miniapp";
 
 export const miniappApi = {
   async fetchSubscription(initData: string): Promise<UserData> {
