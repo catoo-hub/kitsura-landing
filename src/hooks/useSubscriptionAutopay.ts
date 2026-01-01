@@ -5,6 +5,7 @@ import {
   normalizeAutopayPayload,
   parseJsonSafe,
 } from "@/lib/legacy-logic";
+import { API_BASE } from "@/lib/utils";
 
 export function useSubscriptionAutopay() {
   const [state, setState] = useState<
@@ -123,7 +124,7 @@ export function useSubscriptionAutopay() {
           daysBefore: targetDays,
         };
 
-        const response = await fetch("/miniapp/subscription/autopay", {
+        const response = await fetch(`${API_BASE}/subscription/autopay`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

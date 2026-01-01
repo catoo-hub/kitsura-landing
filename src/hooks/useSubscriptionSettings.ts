@@ -7,6 +7,7 @@ import {
   isSameSet,
 } from "@/lib/legacy-logic";
 import { UserData } from "@/lib/types";
+import { API_BASE } from "@/lib/utils";
 
 export interface SubscriptionSettingsSelections {
   servers: Set<string>;
@@ -37,7 +38,7 @@ export function useSubscriptionSettings(
       setError(null);
 
       try {
-        const response = await fetch("/miniapp/subscription/settings", {
+        const response = await fetch(`${API_BASE}/subscription/settings`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ initData }),
@@ -87,7 +88,7 @@ export function useSubscriptionSettings(
         subscription_id: data.subscriptionId,
       };
 
-      const response = await fetch("/miniapp/subscription/servers", {
+      const response = await fetch(`${API_BASE}/subscription/servers`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -119,7 +120,7 @@ export function useSubscriptionSettings(
         subscription_id: data.subscriptionId,
       };
 
-      const response = await fetch("/miniapp/subscription/traffic", {
+      const response = await fetch(`${API_BASE}/subscription/traffic`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
@@ -151,7 +152,7 @@ export function useSubscriptionSettings(
         subscription_id: data.subscriptionId,
       };
 
-      const response = await fetch("/miniapp/subscription/devices", {
+      const response = await fetch(`${API_BASE}/subscription/devices`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

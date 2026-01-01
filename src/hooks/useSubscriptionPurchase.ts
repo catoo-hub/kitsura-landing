@@ -14,6 +14,7 @@ import {
   t,
 } from "@/lib/legacy-logic";
 import { UserData } from "@/lib/types";
+import { API_BASE } from "@/lib/utils";
 
 export interface SubscriptionPurchaseSelections {
   periodId: string | null;
@@ -64,11 +65,14 @@ export function useSubscriptionPurchase(
       setError(null);
 
       try {
-        const response = await fetch("/miniapp/subscription/purchase/options", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ initData }),
-        });
+        const response = await fetch(
+          `${API_BASE}/subscription/purchase/options`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ initData }),
+          }
+        );
         const body = await parseJsonSafe(response);
         if (!response.ok || (body && body.success === false)) {
           throw createError(
@@ -145,11 +149,14 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
-        const response = await fetch("/miniapp/subscription/purchase/preview", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        const response = await fetch(
+          `${API_BASE}/subscription/purchase/preview`,
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload),
+          }
+        );
         const body = await parseJsonSafe(response);
         if (!response.ok || (body && body.success === false)) {
           throw createError(
@@ -235,7 +242,7 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
-        const response = await fetch("/miniapp/subscription/purchase", {
+        const response = await fetch(`${API_BASE}/subscription/purchase`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),

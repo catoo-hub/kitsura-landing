@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { normalizeUserData, normalizeUrl } from "../lib/legacy-logic";
 import { MOCK_USER_DATA } from "../lib/mock-data";
+import { API_BASE } from "../lib/utils";
 
 export function useUser() {
   const [user, setUser] = useState<any>(null);
@@ -24,7 +25,7 @@ export function useUser() {
     }
 
     try {
-      const response = await fetch("/miniapp/subscription", {
+      const response = await fetch(`${API_BASE}/subscription`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
