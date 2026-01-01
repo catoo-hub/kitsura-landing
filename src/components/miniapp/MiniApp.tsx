@@ -678,9 +678,6 @@ const SubscriptionTab = ({
   } | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
-  // Constructor state
-  const [isConstructorMode, setIsConstructorMode] = useState(false);
-
   useEffect(() => {
     if (userData && initData) {
       ensureData();
