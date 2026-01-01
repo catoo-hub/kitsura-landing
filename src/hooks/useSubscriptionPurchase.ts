@@ -99,8 +99,8 @@ export function useSubscriptionPurchase(
           // Fill defaults from config so preview is not zeroed
           ensureSubscriptionPurchaseSelectionsValidForPeriod(
             normalized.periods[0],
-            normalized,
             newSelections,
+            normalized,
             userData
           );
         }
@@ -141,8 +141,8 @@ export function useSubscriptionPurchase(
       const patchedSelections = { ...selections } as any;
       ensureSubscriptionPurchaseSelectionsValidForPeriod(
         period,
-        data,
         patchedSelections,
+        data,
         userData
       );
 
@@ -244,8 +244,8 @@ export function useSubscriptionPurchase(
       // Ensure selections are valid for this period (fills defaults like traffic/servers)
       ensureSubscriptionPurchaseSelectionsValidForPeriod(
         period,
-        data,
         effectiveSelections,
+        data,
         userData
       );
 
