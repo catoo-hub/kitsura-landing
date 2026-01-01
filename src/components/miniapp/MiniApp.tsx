@@ -284,8 +284,11 @@ const SubscriptionTab = ({
     submitting: purchasing,
     ensureData,
     selectPeriod,
+    selectTraffic,
     toggleServer,
+    setDevices,
     submitPurchase,
+    getSelectedPeriod,
   } = useSubscriptionPurchase(userData, initData);
 
   // Promo code state
@@ -307,7 +310,7 @@ const SubscriptionTab = ({
   }, [userData, initData, ensureData]);
 
   const handlePurchase = async (
-    periodId: string | number,
+    periodId?: string | number,
     isCustom: boolean = false
   ) => {
     if (!initData) return;
@@ -319,6 +322,7 @@ const SubscriptionTab = ({
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
       console.error(err);
+      toast.error(err.message || "Ошибка при оформлении подписки");
     }
   };
 
@@ -358,14 +362,21 @@ const SubscriptionTab = ({
   const handleAutoPayToggle = async (enabled: boolean) => {
     // Try to find subscription ID in various places
     const subId =
-      userData?.subscription?.id || userData?.subscriptionId || userData?.id;
+      userData?.subscription?.id ||
+      userData?.subscriptionId ||
+      userData?.subscription_id ||
+      userData?.user?.id ||
+      userData?.id;
 
     if (!initData || !subId) {
       console.error("Missing initData or subscription ID for autopay toggle");
-      return;
+      // If we can't find ID, we might still try if the API infers it from initData
+      // But usually we need an ID.
+      // Let's try to proceed if we have initData, maybe the backend handles it.
+      if (!initData) return;
     }
 
-    await updateAutopaySettings(initData, subId, { enabled });
+    await updateAutopaySettings(initData, subId || "current", { enabled });
     onRefresh();
   };
 
@@ -607,6 +618,38 @@ const SubscriptionTab = ({
                     </div>
                   </div>
 
+                  {/* Traffic selection */}
+                  {purchaseOptions?.traffic?.available &&
+                    purchaseOptions.traffic.available.length > 0 && (
+                      <div className="space-y-2">
+                        <Label>Трафик</Label>
+                        <div className="grid grid-cols-3 gap-2">
+                          {purchaseOptions.traffic.available.map(
+                            (traffic: any) => (
+                              <div
+                                key={traffic.value}
+                                onClick={() => selectTraffic(traffic.value)}
+                                className={`
+                                cursor-pointer rounded-lg p-2 text-center border transition-all
+                                ${
+                                  selections.traffic === traffic.value
+                                    ? "border-primary bg-primary/10 text-primary font-medium"
+                                    : "border-border hover:border-primary/50"
+                                }
+                              `}
+                              >
+                                <div className="text-sm">
+                                  {traffic.value === 0
+                                    ? "∞ ГБ"
+                                    : `${traffic.value} ГБ`}
+                                </div>
+                              </div>
+                            )
+                          )}
+                        </div>
+                      </div>
+                    )}
+
                   {/* Server selection */}
                   {purchaseOptions?.servers?.available &&
                     purchaseOptions.servers.available.length > 0 && (
@@ -712,6 +755,16 @@ const SubscriptionTab = ({
 const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
   if (isLoading || !userData) return null;
 
+  const balance =
+    userData.user?.balance !== undefined
+      ? userData.user.balance
+      : userData.balance !== undefined
+      ? userData.balance
+      : 0;
+
+  const currency =
+    userData.user?.balance_currency || userData.balance_currency || "RUB";
+
   return (
     <div className="space-y-6 pb-24">
       <h2 className="text-2xl font-bold">Финансы</h2>
@@ -721,10 +774,8 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
           <div className="flex flex-col gap-1">
             <span className="text-gray-400 text-sm">Ваш баланс</span>
             <div className="flex items-baseline gap-1">
-              <span className="text-4xl font-bold">{userData.balance}</span>
-              <span className="text-xl text-gray-400">
-                {userData.balance_currency}
-              </span>
+              <span className="text-4xl font-bold">{balance}</span>
+              <span className="text-xl text-gray-400">{currency}</span>
             </div>
           </div>
           <div className="mt-6 flex gap-3">
@@ -771,7 +822,9 @@ const SettingsTab = ({
     {
       icon: Users,
       label: "Реферальная система",
-      badge: "New",
+      badge: userData?.referral?.stats?.earned_total
+        ? `${userData.referral.stats.earned_total} ₽`
+        : "New",
       onClick: () => setIsReferralOpen(true),
     },
     {
@@ -808,7 +861,7 @@ const SettingsTab = ({
             {userData.user.first_name} {userData.user.last_name}
           </h3>
           <p className="text-sm text-muted-foreground">
-            ID: {userData.user.id}
+            ID: {userData.user.telegram_id || userData.user.id || "Неизвестно"}
           </p>
         </div>
         <Button variant="ghost" size="icon">
