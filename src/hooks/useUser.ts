@@ -1,5 +1,6 @@
 import { useState, useCallback } from "react";
 import { normalizeUserData, normalizeUrl } from "../lib/legacy-logic";
+import { MOCK_USER_DATA } from "../lib/mock-data";
 
 export function useUser() {
   const [user, setUser] = useState<any>(null);
@@ -7,18 +8,19 @@ export function useUser() {
   const [error, setError] = useState<any>(null);
 
   const fetchUser = useCallback(async (initData: string, silent = false) => {
-    if (!initData) {
-      const err = {
-        title: "Authorization Error",
-        message: "Missing Telegram ID",
-      };
-      setError(err);
-      throw err;
-    }
-
     if (!silent) {
       setLoading(true);
       setError(null);
+    }
+
+    // Dev mode fallback
+    if (!initData) {
+      console.log("Dev mode: returning mock user data");
+      // Simulate network delay
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      setUser(MOCK_USER_DATA);
+      if (!silent) setLoading(false);
+      return MOCK_USER_DATA;
     }
 
     try {

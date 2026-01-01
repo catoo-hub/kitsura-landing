@@ -4,7 +4,7 @@ import {
   CreatePaymentResponse,
   PurchaseOptions,
   PurchasePeriod,
-  PurchaseServer
+  PurchaseServer,
 } from "./types";
 
 export type {
@@ -13,7 +13,7 @@ export type {
   CreatePaymentResponse,
   PurchaseOptions,
   PurchasePeriod,
-  PurchaseServer
+  PurchaseServer,
 };
 
 import {

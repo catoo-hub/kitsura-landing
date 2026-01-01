@@ -66,6 +66,7 @@ import { useSubscriptionAutopay } from "@/hooks/useSubscriptionAutopay";
 interface TabProps {
   userData: UserData | null;
   isLoading: boolean;
+  error?: any;
   onRefresh: () => void;
   onOpenInstructions?: () => void;
   onNavigate?: (tab: string) => void;
@@ -120,16 +121,39 @@ const BottomNav = ({
 const HomeTab = ({
   userData,
   isLoading,
+  error,
+  onRefresh,
   onOpenInstructions,
   onNavigate,
 }: TabProps) => {
-  if (isLoading || !userData) {
+  if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
         <Loader2 className="size-10 animate-spin text-primary" />
         <p className="text-muted-foreground">Загрузка данных...</p>
       </div>
     );
+  }
+
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 p-4 text-center">
+        <div className="p-3 bg-red-100 text-red-600 rounded-full">
+          <AlertCircle className="size-8" />
+        </div>
+        <h3 className="font-semibold">Ошибка загрузки</h3>
+        <p className="text-sm text-muted-foreground">
+          {error.message || "Не удалось загрузить данные пользователя"}
+        </p>
+        <Button onClick={onRefresh} variant="outline">
+          Попробовать снова
+        </Button>
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return null;
   }
 
   const hasActiveSubscription =
@@ -1121,7 +1145,12 @@ const TopUpModal = ({
 
 export function MiniApp() {
   const [activeTab, setActiveTab] = useState("home");
-  const { user: userData, loading: userLoading, fetchUser } = useUser();
+  const {
+    user: userData,
+    loading: userLoading,
+    error: userError,
+    fetchUser,
+  } = useUser();
   const [appConfig, setAppConfig] = useState<any>(null);
   const [configLoading, setConfigLoading] = useState(true);
   const [initData, setInitData] = useState("");
@@ -1182,6 +1211,7 @@ export function MiniApp() {
                 <HomeTab
                   userData={userData}
                   isLoading={isLoading}
+                  error={userError}
                   onRefresh={() => fetchData(initData)}
                   onOpenInstructions={() => setIsInstructionsOpen(true)}
                   onNavigate={setActiveTab}
