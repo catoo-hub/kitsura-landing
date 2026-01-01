@@ -63,6 +63,8 @@ import { useSubscriptionPurchase } from "@/hooks/useSubscriptionPurchase";
 import { useSubscriptionSettings } from "@/hooks/useSubscriptionSettings";
 import { useSubscriptionAutopay } from "@/hooks/useSubscriptionAutopay";
 
+import { LightRays } from "@/components/LightRays";
+
 // --- Types ---
 interface TabProps {
   userData: UserData | null;
@@ -367,6 +369,9 @@ const SubscriptionSettingsDialog = ({
                     <span className="text-sm text-muted-foreground">
                       Итого к оплате
                     </span>
+                    <span className="text-xs text-muted-foreground/70">
+                      Сумма формируется с учетом настроек подписки
+                    </span>
                     <span className="text-xl font-bold">
                       {calculatingPreview ? (
                         <Loader2 className="size-4 animate-spin inline" />
@@ -534,7 +539,7 @@ const HomeTab = ({
       </div>
 
       {/* Status Card */}
-      <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-background overflow-hidden relative">
+      <Card className="border-primary/20 bg-gradient-to-br from-primary/10 to-background overflow-hidden relative bg-pattern-grid">
         <div className="absolute top-0 right-0 p-3 opacity-10">
           <Zap className="size-24" />
         </div>
@@ -1105,6 +1110,9 @@ const SubscriptionTab = ({
                       <span className="text-sm text-muted-foreground">
                         Итоговая стоимость
                       </span>
+                      <span className="text-xs text-muted-foreground/70">
+                        Сумма формируется с учетом настроек подписки
+                      </span>
                       <span className="text-xl font-bold">
                         {calculatingPreview ? (
                           <Loader2 className="size-4 animate-spin inline" />
@@ -1501,7 +1509,7 @@ const SettingsTab = ({
       )}
 
       <Dialog open={isReferralOpen} onOpenChange={setIsReferralOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto custom-scrollbar">
+        <DialogContent className="max-h-[90vh] w-[95vw] max-w-md overflow-y-auto custom-scrollbar flex flex-col gap-4">
           <DialogHeader>
             <DialogTitle>Реферальная программа</DialogTitle>
           </DialogHeader>
@@ -1603,6 +1611,7 @@ const SettingsTab = ({
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
             {(() => {
               const termsCandidates = [
+                "https://telegra.ph/Pravila-Dostavka-Vozvrat-i-Konfidencialnost-12-06",
                 (userData as any)?.legal_documents?.service_rules?.url,
                 (userData as any)?.legal_documents?.terms?.url,
                 appConfig?.config?.legal?.terms?.url,
@@ -1928,7 +1937,7 @@ export function MiniApp() {
   const isLoading = userLoading || configLoading;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 dark">
+    <div className="min-h-screen bg-black text-foreground font-sans selection:bg-primary/20 dark relative flex justify-center">
       <style>{`
         .bg-pattern-dots {
           background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
@@ -1940,8 +1949,28 @@ export function MiniApp() {
           background-size: 20px 20px;
         }
       `}</style>
-      <div className="max-w-md mx-auto min-h-screen relative bg-background shadow-2xl overflow-hidden">
-        <main className="p-4 h-full overflow-y-auto custom-scrollbar">
+
+      {/* Desktop background (outside the app container) */}
+      <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden bg-black">
+        <div className="absolute inset-0 bg-pattern-dots opacity-20" />
+      </div>
+
+      {/* App Container */}
+      <div className="w-full max-w-md min-h-screen relative bg-background/40 backdrop-blur-xl shadow-2xl overflow-hidden z-10 flex flex-col border-x border-white/5">
+        {/* App Background Effects */}
+        <div className="absolute inset-0 z-0 pointer-events-none">
+          <div className="absolute inset-0 bg-pattern-grid opacity-30" />
+          <LightRays
+            raysColor="#ffffff"
+            raysSpeed={0.2}
+            lightSpread={0.5}
+            rayLength={1.5}
+            className="opacity-40"
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+        </div>
+
+        <main className="relative z-10 p-4 flex-1 overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}

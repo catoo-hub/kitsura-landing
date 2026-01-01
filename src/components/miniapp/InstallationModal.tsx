@@ -173,7 +173,7 @@ export function InstallationModal({
                               const redirectUrl =
                                 "https://kitsura.fun/miniapp/redirect?redirect_to=" +
                                 encodeURIComponent(schemeUrl);
-                              window.location.href = redirectUrl;
+                              window.open(redirectUrl, "_blank");
                             }
                           }}
                         >

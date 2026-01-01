@@ -201,33 +201,45 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
-        const previewEndpoints = isRenewalMode
+        const attempts = isRenewalMode
           ? [
-              `${API_BASE}/subscription/renewal/preview`,
-              `${API_BASE}/subscription/purchase/preview`,
+              {
+                url: `${API_BASE}/subscription/renewal/preview`,
+                useSubId: true,
+              },
+              {
+                url: `${API_BASE}/subscription/purchase/preview`,
+                useSubId: false,
+              },
             ]
-          : [`${API_BASE}/subscription/purchase/preview`];
+          : [
+              {
+                url: `${API_BASE}/subscription/purchase/preview`,
+                useSubId: true,
+              },
+              // Fallback without subId if the first one fails (e.g. due to funds check on existing sub)
+              ...(subscriptionId
+                ? [
+                    {
+                      url: `${API_BASE}/subscription/purchase/preview`,
+                      useSubId: false,
+                    },
+                  ]
+                : []),
+            ];
 
         let lastError: Error | null = null;
-        for (const endpoint of previewEndpoints) {
+        for (const attempt of attempts) {
           try {
-            // If falling back to purchase/preview in renewal mode, remove subscription_id
-            // to avoid "Not enough funds" check if that's what causes it,
-            // and just get the price calculation.
-            const isFallback =
-              isRenewalMode &&
-              endpoint.includes("/purchase/preview") &&
-              previewEndpoints.indexOf(endpoint) > 0;
-
-            const currentPayload = isFallback
-              ? {
+            const currentPayload = attempt.useSubId
+              ? payload
+              : {
                   ...payload,
                   subscription_id: undefined,
                   subscriptionId: undefined,
-                }
-              : payload;
+                };
 
-            const response = await fetch(endpoint, {
+            const response = await fetch(attempt.url, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify(currentPayload),
