@@ -25,14 +25,20 @@ export interface SubscriptionPurchaseSelections {
 
 export function useSubscriptionPurchase(
   userData: UserData | null,
-  initData: string
+  initData: string,
+  options?: { forceMode?: "renewal" | "purchase" }
 ) {
-  const isRenewalMode = Boolean(
-    userData &&
-      userData.subscription_missing === false &&
-      (userData.user?.subscription_actual_status === "active" ||
-        userData.user?.subscription_status === "active")
-  );
+  const isRenewalMode =
+    options?.forceMode === "purchase"
+      ? false
+      : options?.forceMode === "renewal"
+      ? true
+      : Boolean(
+          userData &&
+            userData.subscription_missing === false &&
+            (userData.user?.subscription_actual_status === "active" ||
+              userData.user?.subscription_status === "active")
+        );
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -205,10 +211,26 @@ export function useSubscriptionPurchase(
         let lastError: Error | null = null;
         for (const endpoint of previewEndpoints) {
           try {
+            // If falling back to purchase/preview in renewal mode, remove subscription_id
+            // to avoid "Not enough funds" check if that's what causes it,
+            // and just get the price calculation.
+            const isFallback =
+              isRenewalMode &&
+              endpoint.includes("/purchase/preview") &&
+              previewEndpoints.indexOf(endpoint) > 0;
+
+            const currentPayload = isFallback
+              ? {
+                  ...payload,
+                  subscription_id: undefined,
+                  subscriptionId: undefined,
+                }
+              : payload;
+
             const response = await fetch(endpoint, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
-              body: JSON.stringify(payload),
+              body: JSON.stringify(currentPayload),
             });
             const body = await parseJsonSafe(response);
             if (!response.ok || (body && body.success === false)) {

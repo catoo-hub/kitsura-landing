@@ -72,6 +72,7 @@ interface TabProps {
   onRefresh: () => void;
   onOpenInstructions?: () => void;
   onNavigate?: (tab: string) => void;
+  onOpenSettings?: () => void;
 }
 
 interface FinanceTabProps extends TabProps {
@@ -119,6 +120,293 @@ const formatMoneyLabel = (label: any, kopeks: any, currency: string) => {
     return formatCurrencyLabel(numeric / 100, currency);
   }
   return "0";
+};
+
+const SubscriptionSettingsDialog = ({
+  isOpen,
+  onClose,
+  userData,
+  initData,
+  onRefresh,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  userData: UserData | null;
+  initData: string;
+  onRefresh: () => void;
+}) => {
+  const {
+    data: purchaseOptions,
+    loading: loadingOptions,
+    error,
+    selections,
+    preview,
+    previewLoading: calculatingPreview,
+    submitting: purchasing,
+    ensureData,
+    selectPeriod,
+    selectTraffic,
+    toggleServer,
+    submitPurchase,
+  } = useSubscriptionPurchase(userData, initData, { forceMode: "purchase" });
+
+  const [removingDevice, setRemovingDevice] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (isOpen && userData && initData) {
+      ensureData();
+    }
+  }, [isOpen, userData, initData, ensureData]);
+
+  const handlePurchase = async () => {
+    if (!initData) return;
+    try {
+      await submitPurchase(selections.periodId);
+      setSuccessMsg("Настройки обновлены!");
+      onRefresh();
+      setTimeout(() => {
+        setSuccessMsg(null);
+        onClose();
+      }, 2000);
+    } catch (err: any) {
+      toast.error(err.message || "Ошибка при обновлении");
+    }
+  };
+
+  const handleRemoveDevice = async (hwid?: string) => {
+    if (!hwid || !initData) return;
+    setRemovingDevice(hwid);
+    try {
+      await miniappApi.removeDevice(initData, hwid);
+      toast.success("Устройство удалено");
+      onRefresh();
+    } catch (err: any) {
+      toast.error(err?.message || "Не удалось удалить устройство");
+    } finally {
+      setRemovingDevice(null);
+    }
+  };
+
+  const devices = Array.isArray((userData as any)?.connected_devices)
+    ? (userData as any).connected_devices
+    : Array.isArray((userData as any)?.devices)
+    ? (userData as any).devices
+    : [];
+
+  const getPeriodLabel = (plan: any) => {
+    if (plan.title) return plan.title;
+    if (plan.name) return plan.name;
+    if (plan.label) return plan.label;
+    if (plan.months) return `${plan.months} мес.`;
+    if (plan.days) return `${plan.days} дн.`;
+    return "Тариф";
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <DialogHeader>
+          <DialogTitle>Настройка подписки</DialogTitle>
+          <DialogDescription>
+            Измените параметры или управляйте устройствами
+          </DialogDescription>
+        </DialogHeader>
+
+        <div className="space-y-6">
+          {/* Devices Section */}
+          <div className="space-y-3">
+            <h4 className="font-medium text-sm">
+              Устройства ({devices.length})
+            </h4>
+            {devices.length === 0 && (
+              <p className="text-sm text-muted-foreground">
+                Нет подключённых устройств
+              </p>
+            )}
+            {devices.map((device: any, idx: number) => {
+              const deviceId =
+                device?.hwid || device?.device_id || device?.id || device?.uuid;
+              const title =
+                [device?.platform, device?.device_model]
+                  .filter(Boolean)
+                  .join(" • ") ||
+                device?.label ||
+                deviceId ||
+                `Устройство ${idx + 1}`;
+
+              return (
+                <div
+                  key={deviceId || idx}
+                  className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40 gap-3"
+                >
+                  <span className="text-sm font-medium truncate flex-1">
+                    {title}
+                  </span>
+                  {deviceId && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => handleRemoveDevice(deviceId)}
+                      disabled={removingDevice === deviceId}
+                    >
+                      {removingDevice === deviceId ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <X className="size-4" />
+                      )}
+                    </Button>
+                  )}
+                </div>
+              );
+            })}
+            <p className="text-xs text-muted-foreground">
+              Удалите устройство в этом меню, чтобы освободить слот.
+            </p>
+          </div>
+
+          <Separator />
+
+          {/* Plan Settings */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm">Параметры тарифа</h4>
+
+            {loadingOptions ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="size-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {/* Traffic */}
+                {(() => {
+                  const trafficOptions =
+                    purchaseOptions?.traffic?.options ||
+                    purchaseOptions?.traffic?.available ||
+                    [];
+                  return trafficOptions.length ? (
+                    <div className="space-y-2">
+                      <Label>Трафик</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {trafficOptions.map((traffic: any) => {
+                          const value =
+                            traffic.value ?? traffic.traffic ?? traffic.limit;
+                          const selected = selections.trafficValue === value;
+                          return (
+                            <div
+                              key={value}
+                              onClick={() => selectTraffic(value)}
+                              className={`cursor-pointer rounded-lg p-2 text-center border transition-all ${
+                                selected
+                                  ? "border-primary bg-primary/10 text-primary font-medium"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="text-sm">
+                                {traffic.label ||
+                                  (value === 0 ? "∞ ГБ" : `${value} ГБ`)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Servers */}
+                {(() => {
+                  const serversOptions =
+                    purchaseOptions?.servers?.available ||
+                    purchaseOptions?.servers?.options ||
+                    [];
+                  return serversOptions.length ? (
+                    <div className="space-y-2">
+                      <Label>
+                        Локации ({selections.servers.size || "Все"})
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                        {serversOptions.map((server: any) => {
+                          const uuid = server.uuid || server.id || server.code;
+                          const isSelected = selections.servers.has(uuid);
+                          return (
+                            <div
+                              key={uuid}
+                              onClick={() => toggleServer(uuid)}
+                              className={`cursor-pointer rounded-lg p-2 border transition-all flex items-center gap-2 ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div
+                                className={`size-4 rounded-full border flex items-center justify-center ${
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : "border-muted-foreground"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <CheckCircle2 className="size-3 text-primary-foreground" />
+                                )}
+                              </div>
+                              <span className="text-sm truncate">
+                                {server.name || server.label || server.country}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Price & Action */}
+                <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-muted-foreground">
+                      Итого к оплате
+                    </span>
+                    <span className="text-xl font-bold">
+                      {calculatingPreview ? (
+                        <Loader2 className="size-4 animate-spin inline" />
+                      ) : (
+                        (() => {
+                          const price =
+                            preview?.final_price_kopeks ??
+                            preview?.price_kopeks ??
+                            0;
+                          return formatCurrencyLabel(
+                            price / 100,
+                            purchaseOptions?.currency || "RUB"
+                          );
+                        })()
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={handlePurchase}
+                    disabled={purchasing || calculatingPreview}
+                  >
+                    {purchasing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Применить"
+                    )}
+                  </Button>
+                </div>
+                {successMsg && (
+                  <p className="text-sm text-green-500 text-center">
+                    {successMsg}
+                  </p>
+                )}
+              </>
+            )}
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
 };
 
 // --- Components ---
@@ -170,6 +458,7 @@ const HomeTab = ({
   onRefresh,
   onOpenInstructions,
   onNavigate,
+  onOpenSettings,
 }: TabProps) => {
   if (isLoading) {
     return (
@@ -212,6 +501,18 @@ const HomeTab = ({
     ? "bg-green-500/10 border-green-500/20"
     : "bg-red-500/10 border-red-500/20";
 
+  const expiresAt =
+    userData.user.subscription_expires_at || userData.user.expires_at;
+  const trafficUsed = userData.user.traffic_used || userData.user.used_traffic;
+  const trafficLimit =
+    userData.user.traffic_limit || userData.user.limit_traffic;
+
+  const formatTraffic = (bytes: number) => {
+    if (!bytes) return "0 ГБ";
+    const gb = bytes / (1024 * 1024 * 1024);
+    return `${gb.toFixed(2)} ГБ`;
+  };
+
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
@@ -250,9 +551,30 @@ const HomeTab = ({
         </CardHeader>
         <CardContent>
           {hasActiveSubscription ? (
-            <p className="text-sm text-muted-foreground mb-4">
-              Подписка активна. Наслаждайтесь безопасным интернетом.
-            </p>
+            <div className="space-y-3 mb-4">
+              <p className="text-sm text-muted-foreground">
+                Подписка активна. Наслаждайтесь безопасным интернетом.
+              </p>
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
+                  <span className="text-muted-foreground text-xs block">
+                    Истекает
+                  </span>
+                  <span className="font-medium">
+                    {formatDateTimeLabel(expiresAt)}
+                  </span>
+                </div>
+                <div className="p-2 bg-background/50 rounded-lg border border-border/50">
+                  <span className="text-muted-foreground text-xs block">
+                    Трафик
+                  </span>
+                  <span className="font-medium">
+                    {formatTraffic(trafficUsed)} /{" "}
+                    {trafficLimit ? formatTraffic(trafficLimit) : "∞"}
+                  </span>
+                </div>
+              </div>
+            </div>
           ) : (
             <p className="text-sm text-muted-foreground mb-4">
               Подписка не найдена. Подключите VPN для защиты.
@@ -263,22 +585,14 @@ const HomeTab = ({
             className="w-full shadow-lg shadow-primary/20"
             size="lg"
             onClick={() => {
-              const redirectBase =
-                "https://kitsura.fun/miniapp/redirect?redirect_to=";
-              const target = hasActiveSubscription
-                ? userData.subscription_url || userData.subscriptionUrl
-                : userData.purchase_url || userData.purchaseUrl;
-              if (target) {
-                window.location.href =
-                  redirectBase + encodeURIComponent(target);
-              } else if (hasActiveSubscription) {
-                onOpenInstructions?.();
+              if (hasActiveSubscription) {
+                onOpenSettings?.();
               } else {
                 onNavigate?.("subscription");
               }
             }}
           >
-            {hasActiveSubscription ? "Настроить VPN" : "Добавить подписку"}
+            {hasActiveSubscription ? "Настроить подписку" : "Купить подписку"}
           </Button>
 
           {userData.trial_available && !hasActiveSubscription && (
@@ -1012,7 +1326,6 @@ const SettingsTab = ({
 }: TabProps & { appConfig?: any }) => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isReferralOpen, setIsReferralOpen] = useState(false);
-  const [removingDevice, setRemovingDevice] = useState<string | null>(null);
 
   if (isLoading || !userData) return null;
 
@@ -1067,11 +1380,6 @@ const SettingsTab = ({
     referral?.reward_percent ??
     null;
   const referralTerms = referral?.terms || {};
-  const devices = Array.isArray((userData as any).connected_devices)
-    ? (userData as any).connected_devices
-    : Array.isArray((userData as any).devices)
-    ? (userData as any).devices
-    : [];
 
   const handleCopy = (value?: string) => {
     if (!value) return;
@@ -1079,27 +1387,6 @@ const SettingsTab = ({
       navigator.clipboard.writeText(value).then(() => {
         toast.success("Скопировано");
       });
-    }
-  };
-
-  const handleRemoveDevice = async (hwid?: string) => {
-    if (!hwid) {
-      toast.error("Не удалось определить устройство");
-      return;
-    }
-    if (!initData) {
-      toast.error("Нет данных авторизации");
-      return;
-    }
-    setRemovingDevice(hwid);
-    try {
-      await miniappApi.removeDevice(initData, hwid);
-      toast.success("Устройство сброшено");
-      onRefresh?.();
-    } catch (err: any) {
-      toast.error(err?.message || "Не удалось сбросить устройство");
-    } finally {
-      setRemovingDevice(null);
     }
   };
 
@@ -1149,9 +1436,6 @@ const SettingsTab = ({
             ID: {userData.user.telegram_id || userData.user.id || "Неизвестно"}
           </p>
         </div>
-        <Button variant="ghost" size="icon">
-          <LogOut className="size-5 text-muted-foreground" />
-        </Button>
       </div>
 
       <div className="space-y-2">
@@ -1176,80 +1460,6 @@ const SettingsTab = ({
           </div>
         ))}
       </div>
-
-      <Card className="bg-card border border-border">
-        <CardHeader>
-          <CardTitle>Устройства</CardTitle>
-          <CardDescription>
-            Управление подключёнными устройствами
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {devices.length === 0 && (
-            <p className="text-sm text-muted-foreground">
-              Нет подключённых устройств
-            </p>
-          )}
-          {devices.map((device: any, idx: number) => {
-            const deviceId =
-              device?.hwid || device?.device_id || device?.id || device?.uuid;
-            const titleParts = [
-              device?.platform || device?.os,
-              device?.device_model,
-            ]
-              .filter(Boolean)
-              .map(String);
-            const title =
-              titleParts.filter(Boolean).join(" • ") ||
-              device?.label ||
-              deviceId ||
-              `Устройство ${idx + 1}`;
-
-            const metaParts: string[] = [];
-            if (device?.app_version)
-              metaParts.push(`Версия: ${device.app_version}`);
-            const lastSeen = device?.last_seen || device?.last_activity;
-            const formattedSeen = formatDateTimeLabel(lastSeen);
-            if (formattedSeen) metaParts.push(formattedSeen);
-            if (device?.last_ip) metaParts.push(String(device.last_ip));
-
-            return (
-              <div
-                key={deviceId || idx}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40 gap-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium truncate">{title}</div>
-                  {metaParts.length > 0 && (
-                    <div className="text-xs text-muted-foreground truncate">
-                      {metaParts.join(" • ")}
-                    </div>
-                  )}
-                </div>
-                {deviceId && (
-                  <Button
-                    size="icon"
-                    variant="outline"
-                    onClick={() => handleRemoveDevice(deviceId)}
-                    disabled={removingDevice === deviceId}
-                    className="shrink-0"
-                  >
-                    {removingDevice === deviceId ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : (
-                      <X className="size-4" />
-                    )}
-                  </Button>
-                )}
-              </div>
-            );
-          })}
-          <p className="text-xs text-muted-foreground">
-            Если нужно освободить слот, сбросьте устройство. Это действие можно
-            отменить, повторно войдя через приложение на нужном устройстве.
-          </p>
-        </CardContent>
-      </Card>
 
       {referral && (
         <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-primary/20">
@@ -1291,7 +1501,7 @@ const SettingsTab = ({
       )}
 
       <Dialog open={isReferralOpen} onOpenChange={setIsReferralOpen}>
-        <DialogContent>
+        <DialogContent className="max-h-[80vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>Реферальная программа</DialogTitle>
           </DialogHeader>
@@ -1386,24 +1596,26 @@ const SettingsTab = ({
       </Dialog>
 
       <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
-        <DialogContent className="max-h-[80vh] overflow-y-auto">
+        <DialogContent className="max-h-[80vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle>Правила сервиса</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
             {(() => {
               const termsCandidates = [
+                (userData as any)?.legal_documents?.service_rules?.url,
+                (userData as any)?.legal_documents?.terms?.url,
                 appConfig?.config?.legal?.terms?.url,
                 appConfig?.legal?.terms?.url,
                 appConfig?.config?.branding?.termsUrl,
                 appConfig?.branding?.termsUrl,
-                (userData as any)?.legal_documents?.terms?.url,
                 `${API_BASE}/miniapp/terms`,
                 `${API_BASE}/terms`,
                 "https://kitsura.fun/terms",
               ].filter(Boolean) as string[];
               const termsUrl = termsCandidates[0];
               const updatedAt =
+                (userData as any)?.legal_documents?.service_rules?.updated_at ||
                 (userData as any)?.legal_documents?.terms?.updated_at ||
                 (userData as any)?.legal_documents?.terms?.updatedAt;
               const updatedLabel = updatedAt
@@ -1667,13 +1879,22 @@ export function MiniApp() {
   const [initData, setInitData] = useState("");
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   useEffect(() => {
+    // Force dark mode
+    document.documentElement.classList.add("dark");
+    document.body.classList.add("dark");
+
     // Initialize Telegram WebApp
     const tg = (window as any).Telegram?.WebApp;
     if (tg) {
       tg.ready();
       tg.expand();
+      // Force dark theme colors if possible
+      if (tg.setHeaderColor) tg.setHeaderColor("#0f172a");
+      if (tg.setBackgroundColor) tg.setBackgroundColor("#0f172a");
+
       setInitData(tg.initData);
 
       // Fetch initial data
@@ -1707,7 +1928,18 @@ export function MiniApp() {
   const isLoading = userLoading || configLoading;
 
   return (
-    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20">
+    <div className="min-h-screen bg-background text-foreground font-sans selection:bg-primary/20 dark">
+      <style>{`
+        .bg-pattern-dots {
+          background-image: radial-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+          background-size: 20px 20px;
+        }
+        .bg-pattern-grid {
+          background-image: linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px);
+          background-size: 20px 20px;
+        }
+      `}</style>
       <div className="max-w-md mx-auto min-h-screen relative bg-background shadow-2xl overflow-hidden">
         <main className="p-4 h-full overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
@@ -1726,6 +1958,7 @@ export function MiniApp() {
                   onRefresh={() => fetchData(initData)}
                   onOpenInstructions={() => setIsInstructionsOpen(true)}
                   onNavigate={setActiveTab}
+                  onOpenSettings={() => setIsSettingsOpen(true)}
                 />
               )}
               {activeTab === "subscription" && (
@@ -1764,6 +1997,14 @@ export function MiniApp() {
           isOpen={isTopUpOpen}
           onClose={() => setIsTopUpOpen(false)}
           initData={initData}
+        />
+
+        <SubscriptionSettingsDialog
+          isOpen={isSettingsOpen}
+          onClose={() => setIsSettingsOpen(false)}
+          userData={userData}
+          initData={initData}
+          onRefresh={() => fetchData(initData)}
         />
 
         <InstallationModal

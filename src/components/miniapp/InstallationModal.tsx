@@ -74,7 +74,11 @@ export function InstallationModal({
           >
             <TabsList className="flex w-full overflow-x-auto justify-start h-auto p-1 gap-1 no-scrollbar">
               {platforms.map((p) => (
-                <TabsTrigger key={p.id} value={p.id} className="px-3 py-1.5 text-xs">
+                <TabsTrigger
+                  key={p.id}
+                  value={p.id}
+                  className="px-3 py-1.5 text-xs"
+                >
                   {p.label}
                 </TabsTrigger>
               ))}
@@ -113,7 +117,10 @@ export function InstallationModal({
                     <div className="flex items-center justify-between">
                       <h4 className="font-bold text-lg">{app.name}</h4>
                       {app.isFeatured && (
-                        <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                        <Badge
+                          variant="secondary"
+                          className="bg-green-500/10 text-green-500"
+                        >
                           Рекомендуем
                         </Badge>
                       )}
@@ -121,36 +128,52 @@ export function InstallationModal({
 
                     {/* Installation */}
                     <div className="space-y-2">
-                      <h5 className="text-sm font-medium text-muted-foreground">1. Установка</h5>
-                      <p className="text-sm">{app.installationStep?.description?.ru}</p>
+                      <h5 className="text-sm font-medium text-muted-foreground">
+                        1. Установка
+                      </h5>
+                      <p className="text-sm">
+                        {app.installationStep?.description?.ru}
+                      </p>
                       <div className="flex flex-wrap gap-2">
-                        {app.installationStep?.buttons?.map((btn: any, idx: number) => (
-                          <Button
-                            key={idx}
-                            variant="outline"
-                            size="sm"
-                            className="h-8 text-xs"
-                            onClick={() => window.open(btn.buttonLink, "_blank")}
-                          >
-                            <Download className="mr-2 size-3" />
-                            {btn.buttonText?.ru || "Скачать"}
-                          </Button>
-                        ))}
+                        {app.installationStep?.buttons?.map(
+                          (btn: any, idx: number) => (
+                            <Button
+                              key={idx}
+                              variant="outline"
+                              size="sm"
+                              className="h-8 text-xs"
+                              onClick={() =>
+                                window.open(btn.buttonLink, "_blank")
+                              }
+                            >
+                              <Download className="mr-2 size-3" />
+                              {btn.buttonText?.ru || "Скачать"}
+                            </Button>
+                          )
+                        )}
                       </div>
                     </div>
 
                     {/* Setup */}
                     <div className="space-y-2">
-                      <h5 className="text-sm font-medium text-muted-foreground">2. Настройка</h5>
-                      <p className="text-sm">{app.addSubscriptionStep?.description?.ru}</p>
+                      <h5 className="text-sm font-medium text-muted-foreground">
+                        2. Настройка
+                      </h5>
+                      <p className="text-sm">
+                        {app.addSubscriptionStep?.description?.ru}
+                      </p>
                       {subscriptionUrl && (
-                        <Button 
-                          className="w-full" 
+                        <Button
+                          className="w-full"
                           onClick={() => {
-                            // Try to open app with scheme
                             if (app.urlScheme) {
-                                const url = app.urlScheme + encodeURIComponent(subscriptionUrl);
-                                window.location.href = url;
+                              const schemeUrl =
+                                app.urlScheme +
+                                encodeURIComponent(subscriptionUrl);
+                              const redirectUrl =
+                                "https://kitsura.fun/miniapp/redirect?redirect_to=" +
+                                encodeURIComponent(schemeUrl);
+                              window.location.href = redirectUrl;
                             }
                           }}
                         >
