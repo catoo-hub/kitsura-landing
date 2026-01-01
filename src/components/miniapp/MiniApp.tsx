@@ -64,6 +64,7 @@ interface TabProps {
   isLoading: boolean;
   onRefresh: () => void;
   onOpenInstructions?: () => void;
+  onNavigate?: (tab: string) => void;
 }
 
 interface FinanceTabProps extends TabProps {
@@ -112,7 +113,7 @@ const BottomNav = ({
   );
 };
 
-const HomeTab = ({ userData, isLoading, onOpenInstructions }: TabProps) => {
+const HomeTab = ({ userData, isLoading, onOpenInstructions, onNavigate }: TabProps) => {
   if (isLoading || !userData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
@@ -122,7 +123,9 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions }: TabProps) => {
     );
   }
 
-  const hasActiveSubscription = !userData.subscription_missing;
+  const hasActiveSubscription = !userData.subscription_missing && 
+    (userData.user.subscription_actual_status === 'active' || userData.user.subscription_status === 'active');
+  
   const subscriptionStatus = hasActiveSubscription ? "Активна" : "Не активна";
   const statusColor = hasActiveSubscription ? "text-green-500" : "text-red-500";
   const statusBg = hasActiveSubscription
@@ -176,7 +179,11 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions }: TabProps) => {
             </p>
           )}
 
-          <Button className="w-full shadow-lg shadow-primary/20" size="lg">
+          <Button 
+            className="w-full shadow-lg shadow-primary/20" 
+            size="lg"
+            onClick={hasActiveSubscription ? onOpenInstructions : () => onNavigate?.("subscription")}
+          >
             {hasActiveSubscription ? "Настроить VPN" : "Подключить VPN"}
           </Button>
 
@@ -184,14 +191,7 @@ const HomeTab = ({ userData, isLoading, onOpenInstructions }: TabProps) => {
             <Button
               variant="outline"
               className="w-full mt-3 border-primary/50 text-primary hover:bg-primary/10"
-              onClick={() => {
-                // Logic to activate trial would go here
-                // For now just redirect to subscription tab or show a message
-                // Assuming trial activation is a purchase with specific params or a separate endpoint
-                // Let's just switch to subscription tab for now where user might see a trial option if we added it
-                // Or we can add a direct call here if we implement activateTrial in API
-                setActiveTab("subscription");
-              }}
+              onClick={() => onNavigate?.("subscription")}
             >
               Попробовать бесплатно ({userData.trial_duration_days || 3} дня)
             </Button>
@@ -332,6 +332,7 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
           devices: 1, // Always 1 as requested
         };
         await miniappApi.purchaseSubscription(tg.initData, periodId, selection);
+      } else {
         await miniappApi.purchaseSubscription(tg.initData, periodId);
       }
 
@@ -375,7 +376,6 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
       const tg = (window as any).Telegram?.WebApp;
       if (!tg?.initData) return;
 
-      // Optimistic update could be done here, but for safety we wait
       await miniappApi.toggleAutoPay(tg.initData, enabled);
       onRefresh();
     } catch (err) {
@@ -383,7 +383,25 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
     }
   };
 
+  const getPeriodLabel = (plan: PurchasePeriod) => {
+    if (plan.title) return plan.title;
+    if (plan.name) return plan.name;
+    if (plan.label) return plan.label;
+    if (plan.months) return `${plan.months} мес.`;
+    if (plan.days) return `${plan.days} дн.`;
+    return "Тариф";
+  };
+
+  const getDurationLabel = (plan: PurchasePeriod) => {
+    if (plan.months) return `${plan.months} мес.`;
+    if (plan.days) return `${plan.days} дн.`;
+    return null;
+  };
+
   if (isLoading || !userData) return null;
+
+  const isActive = !userData.subscription_missing && 
+    (userData.user.subscription_actual_status === 'active' || userData.user.subscription_status === 'active');
 
   return (
     <div className="space-y-6 pb-24">
@@ -400,12 +418,12 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
             <Badge
               variant="secondary"
               className={
-                !userData.subscription_missing
+                isActive
                   ? "bg-green-500/10 text-green-500"
                   : "bg-red-500/10 text-red-500"
               }
             >
-              {!userData.subscription_missing ? "Активна" : "Не активна"}
+              {isActive ? "Активна" : "Не активна"}
             </Badge>
           </div>
           <div className="flex justify-between items-center py-2 border-b border-border/50">
@@ -426,7 +444,7 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                 {userData.autopay ? "Включено" : "Выключено"}
               </span>
               <Switch
-                checked={userData.autopay}
+                checked={userData.autopay || false}
                 onCheckedChange={handleAutoPayToggle}
               />
             </div>
@@ -526,8 +544,13 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                     )}
                     <div className="flex flex-col">
                       <span className="font-bold text-lg">
-                        {plan.title || plan.name}
+                        {getPeriodLabel(plan)}
                       </span>
+                      {getDurationLabel(plan) && getDurationLabel(plan) !== getPeriodLabel(plan) && (
+                         <span className="text-sm text-muted-foreground">
+                            {getDurationLabel(plan)}
+                         </span>
+                      )}
                       {plan.discount_percent && (
                         <span className="text-xs text-green-500 font-medium">
                           -{plan.discount_percent}%
@@ -585,7 +608,7 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                           `}
                         >
                           <div className="text-sm">
-                            {plan.title || plan.name}
+                            {getPeriodLabel(plan)}
                           </div>
                         </div>
                       ))}
@@ -746,13 +769,13 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
   );
 };
 
-const SettingsTab = ({ userData, isLoading }: TabProps) => {
+const SettingsTab = ({ userData, isLoading, appConfig }: TabProps & { appConfig?: any }) => {
+  const [isTermsOpen, setIsTermsOpen] = useState(false);
   if (isLoading || !userData) return null;
 
   const menuItems = [
-    { icon: User, label: "Профиль", value: userData.user.first_name },
     { icon: Users, label: "Реферальная система", badge: "New" },
-    { icon: FileText, label: "Правила сервиса" },
+    { icon: FileText, label: "Правила сервиса", onClick: () => setIsTermsOpen(true) },
     {
       icon: Newspaper,
       label: "Новости",
@@ -802,11 +825,6 @@ const SettingsTab = ({ userData, isLoading }: TabProps) => {
               <span className="font-medium">{item.label}</span>
             </div>
             <div className="flex items-center gap-2">
-              {item.value && (
-                <span className="text-sm text-muted-foreground">
-                  {item.value}
-                </span>
-              )}
               {item.badge && (
                 <Badge variant="secondary" className="text-xs h-5">
                   {item.badge}
@@ -848,6 +866,21 @@ const SettingsTab = ({ userData, isLoading }: TabProps) => {
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Правила сервиса</DialogTitle>
+          </DialogHeader>
+          <div className="text-sm text-muted-foreground whitespace-pre-wrap">
+            {appConfig?.config?.branding?.termsUrl ? (
+               <iframe src={appConfig.config.branding.termsUrl} className="w-full h-[60vh] border-none" />
+            ) : (
+               <p>Правила сервиса доступны на официальном сайте.</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -970,7 +1003,7 @@ const TopUpModal = ({
                     >
                       <div className="text-2xl">{method.icon || "💳"}</div>
                       <div className="text-left">
-                        <div className="font-semibold">{method.title}</div>
+                        <div className="font-semibold">{method.title || method.name}</div>
                         {method.description && (
                           <div className="text-xs text-muted-foreground">
                             {method.description}
@@ -1064,6 +1097,7 @@ const TopUpModal = ({
 export function MiniApp() {
   const [activeTab, setActiveTab] = useState("home");
   const [userData, setUserData] = useState<UserData | null>(null);
+  const [appConfig, setAppConfig] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [initData, setInitData] = useState("");
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
@@ -1090,10 +1124,14 @@ export function MiniApp() {
   const fetchData = async (initDataStr: string) => {
     setIsLoading(true);
     try {
-      const data = await miniappApi.fetchSubscription(initDataStr);
-      setUserData(data);
+      const [user, config] = await Promise.all([
+        miniappApi.fetchSubscription(initDataStr),
+        miniappApi.fetchAppConfig()
+      ]);
+      setUserData(user);
+      setAppConfig(config);
     } catch (error) {
-      console.error("Failed to fetch user data:", error);
+      console.error("Failed to fetch data:", error);
     } finally {
       setIsLoading(false);
     }
@@ -1117,6 +1155,7 @@ export function MiniApp() {
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
                   onOpenInstructions={() => setIsInstructionsOpen(true)}
+                  onNavigate={setActiveTab}
                 />
               )}
               {activeTab === "subscription" && (
@@ -1124,6 +1163,7 @@ export function MiniApp() {
                   userData={userData}
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
+                  onNavigate={setActiveTab}
                 />
               )}
               {activeTab === "finance" && (
@@ -1132,6 +1172,7 @@ export function MiniApp() {
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
                   onTopUp={() => setIsTopUpOpen(true)}
+                  onNavigate={setActiveTab}
                 />
               )}
               {activeTab === "settings" && (
@@ -1139,6 +1180,7 @@ export function MiniApp() {
                   userData={userData}
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
+                  appConfig={appConfig}
                 />
               )}
             </motion.div>
@@ -1156,6 +1198,7 @@ export function MiniApp() {
           isOpen={isInstructionsOpen}
           onClose={() => setIsInstructionsOpen(false)}
           subscriptionUrl={userData?.subscription_url}
+          appConfig={appConfig}
         />
       </div>
       <Toaster />

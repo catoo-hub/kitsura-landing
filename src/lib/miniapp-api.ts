@@ -6,6 +6,8 @@ export interface UserData {
     last_name?: string;
     language_code?: string;
     language?: string;
+    subscription_status?: string;
+    subscription_actual_status?: string;
   };
   balance: number;
   balance_currency: string;
@@ -35,7 +37,8 @@ export interface UserData {
 
 export interface PaymentMethod {
   id: string;
-  title: string;
+  title?: string;
+  name?: string;
   description?: string;
   icon?: string;
   currency?: string;
@@ -99,6 +102,19 @@ const API_BASE = "https://miniapp.kitsura.fun/miniapp";
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const miniappApi = {
+  async fetchAppConfig(): Promise<any> {
+    try {
+      const response = await fetch("/app-config.json");
+      if (!response.ok) {
+        throw new Error("Failed to load app config");
+      }
+      return await response.json();
+    } catch (error) {
+      console.error("Error loading app config:", error);
+      return null;
+    }
+  },
+
   async fetchSubscription(initData: string): Promise<UserData> {
     // If no initData (browser dev), return mock immediately
     if (!initData) {
