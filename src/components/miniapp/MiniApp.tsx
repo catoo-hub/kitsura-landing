@@ -50,6 +50,7 @@ import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
 import { toast } from "sonner";
 import { miniappApi } from "@/lib/miniapp-api";
+import { API_BASE } from "@/lib/utils";
 import type {
   UserData,
   PaymentMethod,
@@ -220,7 +221,17 @@ const HomeTab = ({
             size="lg"
             onClick={
               hasActiveSubscription
-                ? onOpenInstructions
+                ? () => {
+                    const redirectBase =
+                      "https://kitsura.fun/miniapp/redirect?redirect_to=";
+                    if (userData.subscription_url) {
+                      window.location.href =
+                        redirectBase +
+                        encodeURIComponent(userData.subscription_url);
+                    } else {
+                      onOpenInstructions?.();
+                    }
+                  }
                 : () => onNavigate?.("subscription")
             }
           >
@@ -599,56 +610,76 @@ const SubscriptionTab = ({
                   <div className="space-y-2">
                     <Label>Период подписки</Label>
                     <div className="grid grid-cols-3 gap-2">
-                      {purchaseOptions?.periods.map((plan: any) => (
-                        <div
-                          key={plan.id}
-                          onClick={() => selectPeriod(plan.id)}
-                          className={`
+                      {purchaseOptions?.periods.map((plan: any) => {
+                        const pid = plan.id?.toString();
+                        return (
+                          <div
+                            key={pid}
+                            onClick={() => selectPeriod(pid)}
+                            className={`
                             cursor-pointer rounded-lg p-2 text-center border transition-all
                             ${
-                              selections.periodId === plan.id
+                              selections.periodId === pid
                                 ? "border-primary bg-primary/10 text-primary font-medium"
                                 : "border-border hover:border-primary/50"
                             }
                           `}
-                        >
-                          <div className="text-sm">{getPeriodLabel(plan)}</div>
-                        </div>
-                      ))}
+                          >
+                            <div className="text-sm">
+                              {getPeriodLabel(plan)}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
 
                   {/* Traffic selection */}
-                  {purchaseOptions?.traffic?.available &&
-                    purchaseOptions.traffic.available.length > 0 && (
+                  {(() => {
+                    const trafficOptions =
+                      purchaseOptions?.traffic?.options ||
+                      purchaseOptions?.traffic?.available ||
+                      [];
+                    return trafficOptions.length ? (
                       <div className="space-y-2">
                         <Label>Трафик</Label>
                         <div className="grid grid-cols-3 gap-2">
-                          {purchaseOptions.traffic.available.map(
-                            (traffic: any) => (
+                          {trafficOptions.map((traffic: any, idx: number) => {
+                            const value =
+                              traffic.value ??
+                              traffic.traffic ??
+                              traffic.limit ??
+                              traffic.amount ??
+                              traffic.id ??
+                              idx;
+                            const selected =
+                              selections.trafficValue !== null
+                                ? selections.trafficValue === value
+                                : false;
+                            return (
                               <div
-                                key={traffic.value}
-                                onClick={() => selectTraffic(traffic.value)}
+                                key={value}
+                                onClick={() => selectTraffic(value)}
                                 className={`
                                 cursor-pointer rounded-lg p-2 text-center border transition-all
                                 ${
-                                  selections.traffic === traffic.value
+                                  selected
                                     ? "border-primary bg-primary/10 text-primary font-medium"
                                     : "border-border hover:border-primary/50"
                                 }
                               `}
                               >
                                 <div className="text-sm">
-                                  {traffic.value === 0
-                                    ? "∞ ГБ"
-                                    : `${traffic.value} ГБ`}
+                                  {traffic.label ||
+                                    (value === 0 ? "∞ ГБ" : `${value} ГБ`)}
                                 </div>
                               </div>
-                            )
-                          )}
+                            );
+                          })}
                         </div>
                       </div>
-                    )}
+                    ) : null;
+                  })()}
 
                   {/* Server selection */}
                   {purchaseOptions?.servers?.available &&
@@ -716,12 +747,19 @@ const SubscriptionTab = ({
                           <Loader2 className="size-4 animate-spin inline" />
                         ) : (
                           <>
-                            {preview?.price
-                              ? (preview.price / 100).toFixed(0)
-                              : (purchaseOptions?.periods.find(
-                                  (p: any) => p.id === selections.periodId
-                                )?.final_price_kopeks || 0) / 100}{" "}
-                            {purchaseOptions?.currency}
+                            {preview?.total?.label ||
+                              (preview?.total?.kopeks !== null &&
+                              preview?.total?.kopeks !== undefined
+                                ? (preview.total.kopeks / 100).toFixed(0) +
+                                  " " +
+                                  purchaseOptions?.currency
+                                : (purchaseOptions?.periods.find(
+                                    (p: any) =>
+                                      p.id?.toString() === selections.periodId
+                                  )?.final_price_kopeks || 0) /
+                                    100 +
+                                  " " +
+                                  purchaseOptions?.currency)}
                           </>
                         )}
                       </span>
@@ -756,7 +794,9 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
   if (isLoading || !userData) return null;
 
   const balance =
-    userData.user?.balance !== undefined
+    userData.balance_kopeks !== undefined
+      ? userData.balance_kopeks / 100
+      : userData.user?.balance !== undefined
       ? userData.user.balance
       : userData.balance !== undefined
       ? userData.balance
@@ -764,6 +804,9 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
 
   const currency =
     userData.user?.balance_currency || userData.balance_currency || "RUB";
+
+  const transactions =
+    userData.transactions || userData.history || userData.payments || [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -799,9 +842,44 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
         </div>
 
         <div className="space-y-3">
-          <div className="text-center py-8 text-muted-foreground text-sm">
-            История операций пуста
-          </div>
+          {transactions.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground text-sm">
+              История операций пуста
+            </div>
+          )}
+          {transactions.map((tx: any, idx: number) => {
+            const amount = tx.amount ?? tx.value ?? tx.sum ?? 0;
+            const isPositive = amount >= 0;
+            const label =
+              tx.title ||
+              tx.type ||
+              tx.kind ||
+              (isPositive ? "Пополнение" : "Списание");
+            const date = tx.date || tx.created_at || tx.createdAt;
+            return (
+              <div
+                key={idx}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40"
+              >
+                <div>
+                  <div className="font-medium">{label}</div>
+                  {date && (
+                    <div className="text-xs text-muted-foreground">
+                      {new Date(date).toLocaleString()}
+                    </div>
+                  )}
+                </div>
+                <div
+                  className={`font-semibold ${
+                    isPositive ? "text-green-500" : "text-red-500"
+                  }`}
+                >
+                  {isPositive ? "+" : ""}
+                  {(Math.abs(amount) / 100).toFixed(2)} {currency}
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -901,20 +979,28 @@ const SettingsTab = ({
               </span>
               <div className="flex gap-2">
                 <code className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                  {userData.referral.link}
+                  {userData.referral.link || "Ссылка недоступна"}
                 </code>
                 <Button
                   size="icon"
                   variant="outline"
                   className="shrink-0"
                   onClick={() => {
-                    navigator.clipboard.writeText(userData.referral!.link);
-                    toast.success("Ссылка скопирована");
+                    if (userData.referral?.link) {
+                      navigator.clipboard.writeText(userData.referral!.link);
+                      toast.success("Ссылка скопирована");
+                    }
                   }}
                 >
                   <Copy className="size-4" />
                 </Button>
               </div>
+              {userData.referral?.percent && (
+                <p className="text-xs text-muted-foreground">
+                  Бонус: {userData.referral.percent}% с пополнений друзей. Им и
+                  вам начисляется бонус.
+                </p>
+              )}
               <p className="text-xs text-muted-foreground mt-1">
                 Приглашайте друзей и получайте бонусы.
               </p>
@@ -967,7 +1053,11 @@ const SettingsTab = ({
             </div>
 
             <p className="text-sm text-muted-foreground text-center">
-              Приглашайте друзей и получайте 10% от их платежей на свой баланс.
+              Приглашайте друзей и получайте
+              {userData.referral?.percent
+                ? ` ${userData.referral.percent}%`
+                : " бонус"}{" "}
+              от их платежей на свой баланс.
             </p>
           </div>
         </DialogContent>
@@ -979,14 +1069,20 @@ const SettingsTab = ({
             <DialogTitle>Правила сервиса</DialogTitle>
           </DialogHeader>
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
-            {appConfig?.config?.branding?.termsUrl ? (
-              <iframe
-                src={appConfig.config.branding.termsUrl}
-                className="w-full h-[60vh] border-none"
-              />
-            ) : (
-              <p>Правила сервиса доступны на официальном сайте.</p>
-            )}
+            {(() => {
+              const termsUrl =
+                appConfig?.config?.branding?.termsUrl ||
+                appConfig?.branding?.termsUrl ||
+                `${API_BASE}/terms`;
+              return termsUrl ? (
+                <iframe
+                  src={termsUrl}
+                  className="w-full h-[60vh] border-none"
+                />
+              ) : (
+                <p>Правила сервиса доступны на официальном сайте.</p>
+              );
+            })()}
           </div>
         </DialogContent>
       </Dialog>
@@ -1090,7 +1186,14 @@ const TopUpModal = ({
           </DialogTitle>
           <DialogDescription>
             {step === "methods" && "Выберите удобный способ оплаты"}
-            {step === "amount" && `Пополнение через ${selectedMethod?.title}`}
+            {step === "amount" &&
+              `Пополнение через ${
+                selectedMethod?.title ||
+                selectedMethod?.name ||
+                (selectedMethod as any)?.label ||
+                selectedMethod?.id ||
+                "выбранный способ"
+              }`}
           </DialogDescription>
         </DialogHeader>
 
@@ -1113,7 +1216,10 @@ const TopUpModal = ({
                       <div className="text-2xl">{method.icon || "💳"}</div>
                       <div className="text-left">
                         <div className="font-semibold">
-                          {method.title || method.name}
+                          {method.title ||
+                            method.name ||
+                            (method as any).label ||
+                            method.id}
                         </div>
                         {method.description && (
                           <div className="text-xs text-muted-foreground">

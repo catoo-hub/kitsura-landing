@@ -29,11 +29,25 @@ const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 export const miniappApi = {
   async fetchAppConfig(): Promise<any> {
     try {
-      const response = await fetch("/app-config.json");
-      if (!response.ok) {
-        throw new Error("Failed to load app config");
+      // Try multiple known paths to avoid 404 on different deployments
+      const candidateUrls = [
+        `${API_BASE}/app-config.json`,
+        `/miniapp/app-config.json`,
+        `/app-config.json`,
+      ];
+
+      for (const url of candidateUrls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            return await response.json();
+          }
+        } catch (e) {
+          // try next
+        }
       }
-      return await response.json();
+
+      throw new Error("Failed to load app config");
     } catch (error) {
       console.error("Error loading app config:", error);
       return null;
@@ -138,9 +152,13 @@ export const miniappApi = {
       currency: root.currency || "RUB",
       balance_kopeks: root.balance_kopeks ?? root.balanceKopeks ?? 0,
       periods: root.periods || root.available_periods || [],
+      traffic: root.traffic ||
+        root.traffic_options ||
+        root.trafficOptions || { available: [], options: [] },
       servers: root.servers ||
-        root.countries || { available: [], min: 0, max: 0 },
-    };
+        root.countries || { available: [], options: [], min: 0, max: 0 },
+      devices: root.devices || root.device_options || root.deviceOptions || {},
+    } as any;
   },
 
   async purchaseSubscription(

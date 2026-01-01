@@ -96,6 +96,13 @@ export function useSubscriptionPurchase(
           newSelections.periodId = resolvePurchasePeriodId(
             normalized.periods[0]
           );
+          // Fill defaults from config so preview is not zeroed
+          ensureSubscriptionPurchaseSelectionsValidForPeriod(
+            normalized.periods[0],
+            normalized,
+            newSelections,
+            userData
+          );
         }
 
         // Apply defaults from normalized data if available (logic from resetSubscriptionPurchaseSelections)
@@ -130,12 +137,18 @@ export function useSubscriptionPurchase(
       const period = getSelectedPeriod();
       if (!period) return;
 
-      // Validate selections (simplified)
-      // ensureSubscriptionPurchaseSelectionsValidForPeriod(period, selections, data, userData);
+      // Ensure selections are compatible with the selected period
+      const patchedSelections = { ...selections } as any;
+      ensureSubscriptionPurchaseSelectionsValidForPeriod(
+        period,
+        data,
+        patchedSelections,
+        userData
+      );
 
       const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
         period,
-        selections
+        patchedSelections
       );
 
       setPreviewLoading(true);
@@ -227,6 +240,14 @@ export function useSubscriptionPurchase(
       if (periodId) {
         effectiveSelections.periodId = String(periodId);
       }
+
+      // Ensure selections are valid for this period (fills defaults like traffic/servers)
+      ensureSubscriptionPurchaseSelectionsValidForPeriod(
+        period,
+        data,
+        effectiveSelections,
+        userData
+      );
 
       const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
         period,

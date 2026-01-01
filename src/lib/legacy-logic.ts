@@ -1371,7 +1371,29 @@ export function normalizeUserData(payload: any): any {
   const userData = { ...payload };
   userData.subscriptionUrl = userData.subscription_url || null;
   userData.subscriptionCryptoLink = userData.subscription_crypto_link || null;
-  userData.referral = userData.referral || null;
+  userData.referral = userData.referral || {
+    link:
+      payload.referral_link ||
+      payload.referralUrl ||
+      payload.referral_url ||
+      null,
+  };
+  if (userData.referral) {
+    userData.referral.link =
+      userData.referral.link ||
+      userData.referral.url ||
+      userData.referral.href ||
+      payload.referral_link ||
+      payload.referralUrl ||
+      payload.referral_url ||
+      null;
+    userData.referral.percent =
+      userData.referral.percent ||
+      userData.referral.bonus_percent ||
+      payload.referral_percent ||
+      payload.referralPercent ||
+      null;
+  }
 
   const happData = payload?.happ;
   if (happData && typeof happData === "object") {
