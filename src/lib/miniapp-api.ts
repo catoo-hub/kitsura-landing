@@ -21,8 +21,7 @@ import {
   MOCK_PAYMENT_METHODS,
   MOCK_PURCHASE_OPTIONS,
 } from "./mock-data";
-
-const API_BASE = "https://miniapp.kitsura.fun/miniapp";
+import { API_BASE } from "./utils";
 
 // Helper to simulate delay
 const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));

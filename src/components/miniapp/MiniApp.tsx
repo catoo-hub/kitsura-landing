@@ -67,6 +67,7 @@ interface TabProps {
   userData: UserData | null;
   isLoading: boolean;
   error?: any;
+  initData?: string;
   onRefresh: () => void;
   onOpenInstructions?: () => void;
   onNavigate?: (tab: string) => void;
@@ -267,21 +268,25 @@ const HomeTab = ({
   );
 };
 
-const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
+const SubscriptionTab = ({
+  userData,
+  isLoading,
+  initData = "",
+  onRefresh,
+}: TabProps) => {
   const {
-    purchaseOptions,
-    loadingOptions,
-    purchasing,
+    data: purchaseOptions,
+    loading: loadingOptions,
     error,
-    successMsg,
-    previewPrice,
-    calculatingPreview,
-    loadOptions,
-    calculatePreview,
-    purchaseSubscription,
-    setError,
-    setSuccessMsg,
-  } = useSubscriptionPurchase();
+    selections,
+    preview,
+    previewLoading: calculatingPreview,
+    submitting: purchasing,
+    ensureData,
+    selectPeriod,
+    toggleServer,
+    submitPurchase,
+  } = useSubscriptionPurchase(userData, initData);
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -290,56 +295,22 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
 
   // Constructor state
   const [isConstructorMode, setIsConstructorMode] = useState(false);
-  const [selectedPeriodId, setSelectedPeriodId] = useState<
-    string | number | null
-  >(null);
-  const [selectedServers, setSelectedServers] = useState<Set<string>>(
-    new Set()
-  );
 
   useEffect(() => {
-    const tg = (window as any).Telegram?.WebApp;
-    if (userData && tg?.initData) {
-      loadOptions(tg.initData).then((options: any) => {
-        if (options && options.periods && options.periods.length > 0) {
-          setSelectedPeriodId(options.periods[0].id);
-        }
-      });
+    if (userData && initData) {
+      ensureData();
     }
-  }, [userData, loadOptions]);
-
-  // Effect to calculate preview when constructor options change
-  useEffect(() => {
-    if (isConstructorMode && selectedPeriodId) {
-      const tg = (window as any).Telegram?.WebApp;
-      if (tg?.initData) {
-        calculatePreview(
-          tg.initData,
-          selectedPeriodId,
-          Array.from(selectedServers),
-          1
-        );
-      }
-    }
-  }, [isConstructorMode, selectedPeriodId, selectedServers, calculatePreview]);
+  }, [userData, initData, ensureData]);
 
   const handlePurchase = async (
     periodId: string | number,
     isCustom: boolean = false
   ) => {
-    const tg = (window as any).Telegram?.WebApp;
-    if (!tg?.initData) return;
-
-    // If purchasing a standard tariff, ensure we don't accidentally use selected servers from constructor
-    if (!isCustom) {
-      // We can't easily clear state synchronously.
-      // Ideally submitPurchase should accept full overrides.
-      // For now, we rely on the user not having set servers if they are in standard view.
-      // Or we can force clear them in the hook if we passed a flag.
-    }
+    if (!initData) return;
 
     try {
       await submitPurchase(periodId);
@@ -347,7 +318,6 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
       onRefresh();
       setTimeout(() => setSuccessMsg(null), 3000);
     } catch (err: any) {
-      // Error handled by hook state usually, but we can log
       console.error(err);
     }
   };
@@ -357,10 +327,9 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
     setPromoLoading(true);
     setPromoMessage(null);
     try {
-      const tg = (window as any).Telegram?.WebApp;
-      if (!tg?.initData) return;
+      if (!initData) return;
 
-      const result = await miniappApi.activatePromoCode(tg.initData, promoCode);
+      const result = await miniappApi.activatePromoCode(initData, promoCode);
       setPromoMessage({
         type: "success",
         text: result.message || "Промокод активирован!",
@@ -387,17 +356,16 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
   }, [userData, ingestAutopayData]);
 
   const handleAutoPayToggle = async (enabled: boolean) => {
-    const tg = (window as any).Telegram?.WebApp;
     // Try to find subscription ID in various places
     const subId =
       userData?.subscription?.id || userData?.subscriptionId || userData?.id;
 
-    if (!tg?.initData || !subId) {
+    if (!initData || !subId) {
       console.error("Missing initData or subscription ID for autopay toggle");
       return;
     }
 
-    await updateAutopaySettings(tg.initData, subId, { enabled });
+    await updateAutopaySettings(initData, subId, { enabled });
     onRefresh();
   };
 
@@ -623,12 +591,7 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                       {purchaseOptions?.periods.map((plan: any) => (
                         <div
                           key={plan.id}
-                          onClick={() =>
-                            setSelections((prev) => ({
-                              ...prev,
-                              periodId: plan.id,
-                            }))
-                          }
+                          onClick={() => selectPeriod(plan.id)}
                           className={`
                             cursor-pointer rounded-lg p-2 text-center border transition-all
                             ${
@@ -664,18 +627,7 @@ const SubscriptionTab = ({ userData, isLoading, onRefresh }: TabProps) => {
                               return (
                                 <div
                                   key={server.uuid}
-                                  onClick={() => {
-                                    const newSet = new Set(selections.servers);
-                                    if (isSelected) {
-                                      newSet.delete(server.uuid);
-                                    } else {
-                                      newSet.add(server.uuid);
-                                    }
-                                    setSelections((prev) => ({
-                                      ...prev,
-                                      servers: newSet,
-                                    }));
-                                  }}
+                                  onClick={() => toggleServer(server.uuid)}
                                   className={`
                                 cursor-pointer rounded-lg p-2 border transition-all flex items-center gap-2
                                 ${
@@ -811,10 +763,17 @@ const SettingsTab = ({
   appConfig,
 }: TabProps & { appConfig?: any }) => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
+  const [isReferralOpen, setIsReferralOpen] = useState(false);
+
   if (isLoading || !userData) return null;
 
   const menuItems = [
-    { icon: Users, label: "Реферальная система", badge: "New" },
+    {
+      icon: Users,
+      label: "Реферальная система",
+      badge: "New",
+      onClick: () => setIsReferralOpen(true),
+    },
     {
       icon: FileText,
       label: "Правила сервиса",
@@ -910,6 +869,56 @@ const SettingsTab = ({
           </CardContent>
         </Card>
       )}
+
+      <Dialog open={isReferralOpen} onOpenChange={setIsReferralOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Реферальная программа</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
+              <h4 className="font-medium mb-2">Ваша ссылка</h4>
+              <div className="flex gap-2">
+                <code className="flex-1 bg-background rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap border border-border">
+                  {userData.referral?.link || "Ссылка недоступна"}
+                </code>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    if (userData.referral?.link) {
+                      navigator.clipboard.writeText(userData.referral.link);
+                      toast.success("Ссылка скопирована");
+                    }
+                  }}
+                >
+                  <Copy className="size-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-2xl font-bold">
+                  {userData.referral?.stats?.invited_count || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Приглашено</div>
+              </div>
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-2xl font-bold">
+                  {userData.referral?.stats?.earned_total || 0}
+                </div>
+                <div className="text-xs text-muted-foreground">Заработано</div>
+              </div>
+            </div>
+
+            <p className="text-sm text-muted-foreground text-center">
+              Приглашайте друзей и получайте 10% от их платежей на свой баланс.
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isTermsOpen} onOpenChange={setIsTermsOpen}>
         <DialogContent className="max-h-[80vh] overflow-y-auto">
@@ -1221,6 +1230,7 @@ export function MiniApp() {
                 <SubscriptionTab
                   userData={userData}
                   isLoading={isLoading}
+                  initData={initData}
                   onRefresh={() => fetchData(initData)}
                   onNavigate={setActiveTab}
                 />
