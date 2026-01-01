@@ -56,12 +56,14 @@ import {
   type PurchaseOptions,
   type PurchasePeriod,
 } from "@/lib/miniapp-api";
+import { InstallationModal } from "./InstallationModal";
 
 // --- Types ---
 interface TabProps {
   userData: UserData | null;
   isLoading: boolean;
   onRefresh: () => void;
+  onOpenInstructions?: () => void;
 }
 
 interface FinanceTabProps extends TabProps {
@@ -110,7 +112,7 @@ const BottomNav = ({
   );
 };
 
-const HomeTab = ({ userData, isLoading }: TabProps) => {
+const HomeTab = ({ userData, isLoading, onOpenInstructions }: TabProps) => {
   if (isLoading || !userData) {
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4">
@@ -199,7 +201,10 @@ const HomeTab = ({ userData, isLoading }: TabProps) => {
 
       {/* Quick Actions */}
       <div className="grid grid-cols-2 gap-4">
-        <Card className="bg-card/50 hover:bg-card/80 transition-colors cursor-pointer border-border/50">
+        <Card
+          className="bg-card/50 hover:bg-card/80 transition-colors cursor-pointer border-border/50"
+          onClick={onOpenInstructions}
+        >
           <CardContent className="p-4 flex flex-col items-center text-center gap-2">
             <div className="p-2 rounded-full bg-blue-500/10 text-blue-500">
               <HelpCircle className="size-6" />
@@ -207,7 +212,10 @@ const HomeTab = ({ userData, isLoading }: TabProps) => {
             <span className="font-medium text-sm">Инструкция</span>
           </CardContent>
         </Card>
-        <Card className="bg-card/50 hover:bg-card/80 transition-colors cursor-pointer border-border/50">
+        <Card
+          className="bg-card/50 hover:bg-card/80 transition-colors cursor-pointer border-border/50"
+          onClick={() => window.open("https://t.me/torroixq", "_blank")}
+        >
           <CardContent className="p-4 flex flex-col items-center text-center gap-2">
             <div className="p-2 rounded-full bg-purple-500/10 text-purple-500">
               <Users className="size-6" />
@@ -745,8 +753,17 @@ const SettingsTab = ({ userData, isLoading }: TabProps) => {
     { icon: User, label: "Профиль", value: userData.user.first_name },
     { icon: Users, label: "Реферальная система", badge: "New" },
     { icon: FileText, label: "Правила сервиса" },
-    { icon: Newspaper, label: "Новости", external: true },
-    { icon: HelpCircle, label: "Поддержка" },
+    {
+      icon: Newspaper,
+      label: "Новости",
+      external: true,
+      onClick: () => window.open("https://t.me/kitsuravpn", "_blank"),
+    },
+    {
+      icon: HelpCircle,
+      label: "Поддержка",
+      onClick: () => window.open("https://t.me/torroixq", "_blank"),
+    },
   ];
 
   return (
@@ -777,6 +794,7 @@ const SettingsTab = ({ userData, isLoading }: TabProps) => {
         {menuItems.map((item, idx) => (
           <div
             key={idx}
+            onClick={item.onClick}
             className="flex items-center justify-between p-4 rounded-xl bg-card/50 border border-border/50 hover:bg-card transition-colors cursor-pointer group"
           >
             <div className="flex items-center gap-3">
@@ -811,7 +829,15 @@ const SettingsTab = ({ userData, isLoading }: TabProps) => {
                 <code className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
                   {userData.referral.link}
                 </code>
-                <Button size="icon" variant="outline" className="shrink-0">
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="shrink-0"
+                  onClick={() => {
+                    navigator.clipboard.writeText(userData.referral!.link);
+                    toast.success("Ссылка скопирована");
+                  }}
+                >
                   <Copy className="size-4" />
                 </Button>
               </div>
@@ -1041,6 +1067,7 @@ export function MiniApp() {
   const [isLoading, setIsLoading] = useState(true);
   const [initData, setInitData] = useState("");
   const [isTopUpOpen, setIsTopUpOpen] = useState(false);
+  const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
 
   useEffect(() => {
     // Initialize Telegram WebApp
@@ -1089,6 +1116,7 @@ export function MiniApp() {
                   userData={userData}
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
+                  onOpenInstructions={() => setIsInstructionsOpen(true)}
                 />
               )}
               {activeTab === "subscription" && (
@@ -1122,6 +1150,12 @@ export function MiniApp() {
           isOpen={isTopUpOpen}
           onClose={() => setIsTopUpOpen(false)}
           initData={initData}
+        />
+
+        <InstallationModal
+          isOpen={isInstructionsOpen}
+          onClose={() => setIsInstructionsOpen(false)}
+          subscriptionUrl={userData?.subscription_url}
         />
       </div>
       <Toaster />
