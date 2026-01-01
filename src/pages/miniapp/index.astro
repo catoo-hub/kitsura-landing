@@ -1,0 +1,40 @@
+---
+import "@/styles/global.css"
+import { MiniApp as MiniAppComponent } from "@/components/miniapp/MiniApp"
+---
+
+<!DOCTYPE html>
+<html lang="ru" class="dark">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>VPN Mini App</title>
+    <script src="https://telegram.org/js/telegram-web-app.js" is:inline></script>
+    <style>
+      /* Mobile-first optimizations */
+      body {
+        overscroll-behavior-y: none; /* Prevent pull-to-refresh on mobile */
+        -webkit-tap-highlight-color: transparent;
+      }
+      .pb-safe {
+        padding-bottom: env(safe-area-inset-bottom);
+      }
+    </style>
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <MiniAppComponent client:only="react" />
+    
+    <script>
+      // Initialize Telegram Web App
+      if (window.Telegram?.WebApp) {
+        const tg = window.Telegram.WebApp;
+        tg.ready();
+        tg.expand();
+        
+        // Set theme colors based on TG theme
+        document.documentElement.style.setProperty('--background', tg.themeParams.bg_color || '#000000');
+        document.documentElement.style.setProperty('--foreground', tg.themeParams.text_color || '#ffffff');
+      }
+    </script>
+  </body>
+</html>
