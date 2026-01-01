@@ -1,0 +1,138 @@
+          {/* Plan Settings */}
+          <div className="space-y-4">
+            <h4 className="font-medium text-sm">Параметры тарифа</h4>
+
+            {loadingOptions ? (
+              <div className="flex justify-center py-4">
+                <Loader2 className="size-6 animate-spin text-primary" />
+              </div>
+            ) : (
+              <>
+                {/* Traffic */}
+                {(() => {
+                  const trafficOptions =
+                    purchaseOptions?.traffic?.options ||
+                    purchaseOptions?.traffic?.available ||
+                    [];
+                  return trafficOptions.length ? (
+                    <div className="space-y-2">
+                      <Label>Трафик</Label>
+                      <div className="grid grid-cols-3 gap-2">
+                        {trafficOptions.map((traffic: any) => {
+                          const value =
+                            traffic.value ?? traffic.traffic ?? traffic.limit;
+                          const selected = selections.trafficValue === value;
+                          return (
+                            <div
+                              key={value}
+                              onClick={() => selectTraffic(value)}
+                              className={`cursor-pointer rounded-lg p-2 text-center border transition-all ${
+                                selected
+                                  ? "border-primary bg-primary/10 text-primary font-medium"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div className="text-sm">
+                                {traffic.label ||
+                                  (value === 0 ? "∞ ГБ" : `${value} ГБ`)}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Servers */}
+                {(() => {
+                  const serversOptions =
+                    purchaseOptions?.servers?.available ||
+                    purchaseOptions?.servers?.options ||
+                    [];
+                  return serversOptions.length ? (
+                    <div className="space-y-2">
+                      <Label>
+                        Локации ({selections.servers.size || "Все"})
+                      </Label>
+                      <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
+                        {serversOptions.map((server: any) => {
+                          const uuid = server.uuid || server.id || server.code;
+                          const isSelected = selections.servers.has(uuid);
+                          return (
+                            <div
+                              key={uuid}
+                              onClick={() => toggleServer(uuid)}
+                              className={`cursor-pointer rounded-lg p-2 border transition-all flex items-center gap-2 ${
+                                isSelected
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                            >
+                              <div
+                                className={`size-4 rounded-full border flex items-center justify-center ${
+                                  isSelected
+                                    ? "border-primary bg-primary"
+                                    : "border-muted-foreground"
+                                }`}
+                              >
+                                {isSelected && (
+                                  <CheckCircle2 className="size-3 text-primary-foreground" />
+                                )}
+                              </div>
+                              <span className="text-sm truncate">
+                                {server.name || server.label || server.country}
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Price & Action */}
+                <div className="pt-4 border-t border-border/50 flex items-center justify-between">
+                  <div className="flex flex-col">
+                    <span className="text-sm text-muted-foreground">
+                      Итого к оплате
+                    </span>
+                    <span className="text-xs text-muted-foreground/70">
+                      Сумма формируется с учетом настроек подписки
+                    </span>
+                    <span className="text-xl font-bold">
+                      {calculatingPreview ? (
+                        <Loader2 className="size-4 animate-spin inline" />
+                      ) : (
+                        (() => {
+                          const price =
+                            preview?.final_price_kopeks ??
+                            preview?.price_kopeks ??
+                            0;
+                          return formatCurrencyLabel(
+                            price / 100,
+                            purchaseOptions?.currency || "RUB"
+                          );
+                        })()
+                      )}
+                    </span>
+                  </div>
+                  <Button
+                    onClick={handlePurchase}
+                    disabled={purchasing || calculatingPreview}
+                  >
+                    {purchasing ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      "Применить"
+                    )}
+                  </Button>
+                </div>
+                {successMsg && (
+                  <p className="text-sm text-green-500 text-center">
+                    {successMsg}
+                  </p>
+                )}
+              </>
+            )}
+          </div>

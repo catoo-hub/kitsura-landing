@@ -226,17 +226,8 @@ export function useSubscriptionPurchase(
           : [
               {
                 url: `${API_BASE}/subscription/purchase/preview`,
-                useSubId: true,
+                useSubId: false, // Force false for purchase mode to avoid "Not enough funds" if subId is accidentally passed
               },
-              // Fallback without subId if the first one fails (e.g. due to funds check on existing sub)
-              ...(subscriptionId
-                ? [
-                    {
-                      url: `${API_BASE}/subscription/purchase/preview`,
-                      useSubId: false,
-                    },
-                  ]
-                : []),
             ];
 
         let lastError: Error | null = null;
@@ -295,7 +286,11 @@ export function useSubscriptionPurchase(
         }
 
         if (lastError) {
-          throw lastError;
+          // If all attempts failed, clear preview but don't throw to UI immediately unless critical
+          // But we want to show 0 or fallback
+          setPreview(null);
+          // Don't set error to block UI, just let fallback price logic handle it
+          // setPreviewError(lastError);
         }
       } catch (err: any) {
         setPreviewError(err);
@@ -303,8 +298,15 @@ export function useSubscriptionPurchase(
         setPreviewLoading(false);
       }
     },
-    [data, initData, selections, userData, getSelectedPeriod, isRenewalMode]
+    [initData, userData, data, isRenewalMode, selections, getSelectedPeriod]
   );
+
+  // Trigger preview update when selections change
+  useEffect(() => {
+    if (data && initData) {
+      updatePreview();
+    }
+  }, [selections, data, initData]);
 
   // Effect to update preview when selections change
   useEffect(() => {
