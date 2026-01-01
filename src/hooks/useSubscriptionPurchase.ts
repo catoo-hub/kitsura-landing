@@ -48,6 +48,17 @@ export function useSubscriptionPurchase(
     servers: new Set(),
     devices: 1,
   });
+
+  // Reset data when mode changes to ensure we fetch the correct options (renewal vs purchase)
+  useEffect(() => {
+    setData(null);
+    setSelections({
+      periodId: null,
+      trafficValue: null,
+      servers: new Set(),
+      devices: 1,
+    });
+  }, [isRenewalMode]);
   const [preview, setPreview] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<Error | null>(null);
@@ -237,6 +248,24 @@ export function useSubscriptionPurchase(
                   ...payload,
                   subscription_id: undefined,
                   subscriptionId: undefined,
+                  // If we are stripping subId (fallback to new purchase), we MUST ensure traffic/servers are set.
+                  // If selections are empty (e.g. in renewal mode where options were hidden), try to infer from userData.
+                  selection: {
+                    ...payload.selection,
+                    traffic_value:
+                      payload.selection?.traffic_value ??
+                      (userData?.user?.traffic_limit
+                        ? Math.round(
+                            userData.user.traffic_limit / (1024 * 1024 * 1024)
+                          )
+                        : undefined),
+                    servers:
+                      payload.selection?.servers?.length > 0
+                        ? payload.selection.servers
+                        : userData?.subscription?.servers?.map(
+                            (s: any) => s.uuid || s.id
+                          ) || [],
+                  },
                 };
 
             const response = await fetch(attempt.url, {

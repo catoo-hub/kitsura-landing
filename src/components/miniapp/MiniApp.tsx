@@ -647,6 +647,9 @@ const SubscriptionTab = ({
   initData = "",
   onRefresh,
 }: TabProps) => {
+  // Constructor state
+  const [isConstructorMode, setIsConstructorMode] = useState(false);
+
   const {
     data: purchaseOptions,
     loading: loadingOptions,
@@ -662,7 +665,9 @@ const SubscriptionTab = ({
     setDevices,
     submitPurchase,
     getSelectedPeriod,
-  } = useSubscriptionPurchase(userData, initData);
+  } = useSubscriptionPurchase(userData, initData, {
+    forceMode: isConstructorMode ? "purchase" : undefined,
+  });
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -680,7 +685,7 @@ const SubscriptionTab = ({
     if (userData && initData) {
       ensureData();
     }
-  }, [userData, initData, ensureData]);
+  }, [userData, initData, ensureData, isConstructorMode]);
 
   const handlePurchase = async (
     periodId?: string | number,
@@ -905,6 +910,9 @@ const SubscriptionTab = ({
             {!isConstructorMode ? (
               // Standard Tariffs View
               <div className="grid grid-cols-1 gap-3">
+                <p className="text-xs text-muted-foreground/70 px-1">
+                  Стоимость рассчитана с учетом ваших текущих настроек подписки.
+                </p>
                 {purchaseOptions?.periods.map((plan) => (
                   <div
                     key={plan.id}
@@ -1961,11 +1969,16 @@ export function MiniApp() {
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
           <LightRays
-            raysColor="#ffffff"
-            raysSpeed={0.2}
-            lightSpread={0.5}
-            rayLength={1.5}
-            className="opacity-40"
+            raysOrigin="top-center"
+            raysColor="white"
+            raysSpeed={1.5}
+            lightSpread={0.8}
+            rayLength={0.6}
+            followMouse={true}
+            mouseInfluence={0}
+            noiseAmount={0.4}
+            distortion={0.05}
+            className="opacity-50"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
         </div>
