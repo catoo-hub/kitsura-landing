@@ -47,6 +47,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Toaster } from "@/components/ui/sonner";
+import { toast } from "sonner";
 import {
   miniappApi,
   type UserData,
@@ -1053,7 +1055,8 @@ export function MiniApp() {
     } else {
       // Fallback for development outside Telegram
       console.warn("Telegram WebApp not detected");
-      setIsLoading(false);
+      fetchData(""); // Load mock data
+      toast.info("Режим разработки: используются тестовые данные");
     }
   }, []);
 
@@ -1121,6 +1124,7 @@ export function MiniApp() {
           initData={initData}
         />
       </div>
+      <Toaster />
     </div>
   );
 }

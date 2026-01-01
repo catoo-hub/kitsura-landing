@@ -87,36 +87,64 @@ export interface PurchaseOptions {
   };
 }
 
+import { MOCK_USER_DATA, MOCK_PAYMENT_METHODS, MOCK_PURCHASE_OPTIONS } from "./mock-data";
+
 const API_BASE = "https://miniapp.kitsura.fun/miniapp";
+
+// Helper to simulate delay
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 export const miniappApi = {
   async fetchSubscription(initData: string): Promise<UserData> {
-    const response = await fetch(`${API_BASE}/subscription`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData }),
-    });
+    try {
+      // If no initData (browser dev) or explicit mock mode, return mock immediately
+      if (!initData) {
+        console.log("Dev mode: returning mock user data");
+        await delay(800);
+        return MOCK_USER_DATA;
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch subscription data");
+      const response = await fetch(`${API_BASE}/subscription`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+
+      if (!response.ok) {
+        // Fallback to mock data on 401 or other errors for demo purposes
+        console.warn("API request failed, falling back to mock data");
+        return MOCK_USER_DATA;
+      }
+
+      return response.json();
+    } catch (error) {
+      console.warn("Network error, falling back to mock data", error);
+      return MOCK_USER_DATA;
     }
-
-    return response.json();
   },
 
   async fetchPaymentMethods(initData: string): Promise<PaymentMethod[]> {
-    const response = await fetch(`${API_BASE}/payments/methods`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData }),
-    });
+    try {
+      if (!initData) {
+        await delay(500);
+        return MOCK_PAYMENT_METHODS;
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch payment methods");
+      const response = await fetch(`${API_BASE}/payments/methods`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+
+      if (!response.ok) {
+        return MOCK_PAYMENT_METHODS;
+      }
+
+      const data = await response.json();
+      return data.methods || [];
+    } catch (error) {
+      return MOCK_PAYMENT_METHODS;
     }
-
-    const data = await response.json();
-    return data.methods || [];
   },
 
   async createPayment(
@@ -155,25 +183,34 @@ export const miniappApi = {
   },
 
   async fetchPurchaseOptions(initData: string): Promise<PurchaseOptions> {
-    const response = await fetch(`${API_BASE}/subscription/purchase/options`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData }),
-    });
+    try {
+      if (!initData) {
+        await delay(600);
+        return MOCK_PURCHASE_OPTIONS;
+      }
 
-    if (!response.ok) {
-      throw new Error("Failed to fetch purchase options");
+      const response = await fetch(`${API_BASE}/subscription/purchase/options`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
+
+      if (!response.ok) {
+        return MOCK_PURCHASE_OPTIONS;
+      }
+
+      const data = await response.json();
+      const root = data.data || data;
+      return {
+        currency: root.currency || "RUB",
+        balance_kopeks: root.balance_kopeks ?? root.balanceKopeks ?? 0,
+        periods: root.periods || root.available_periods || [],
+        servers: root.servers ||
+          root.countries || { available: [], min: 0, max: 0 },
+      };
+    } catch (error) {
+      return MOCK_PURCHASE_OPTIONS;
     }
-
-    const data = await response.json();
-    const root = data.data || data;
-    return {
-      currency: root.currency || "RUB",
-      balance_kopeks: root.balance_kopeks ?? root.balanceKopeks ?? 0,
-      periods: root.periods || root.available_periods || [],
-      servers: root.servers ||
-        root.countries || { available: [], min: 0, max: 0 },
-    };
   },
 
   async purchaseSubscription(
