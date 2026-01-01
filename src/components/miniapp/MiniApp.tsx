@@ -795,19 +795,23 @@ const SubscriptionTab = ({
                             {getDurationLabel(plan)}
                           </span>
                         )}
-                      {plan.discount_percent && (
+                      {(plan.discount_percent || plan.discountPercent) && (
                         <span className="text-xs text-green-500 font-medium">
-                          -{plan.discount_percent}%
+                          -{plan.discount_percent || plan.discountPercent}%
                         </span>
                       )}
                     </div>
                     <div className="flex items-center gap-3">
                       <span className="font-semibold">
-                        {plan.final_price_kopeks
-                          ? (plan.final_price_kopeks / 100).toFixed(0)
-                          : plan.price_kopeks
-                          ? (plan.price_kopeks / 100).toFixed(0)
-                          : 0}{" "}
+                        {(() => {
+                          const price =
+                            plan.final_price_kopeks ??
+                            plan.finalPriceKopeks ??
+                            plan.price_kopeks ??
+                            plan.priceKopeks ??
+                            0;
+                          return (price / 100).toFixed(0);
+                        })()}{" "}
                         {purchaseOptions.currency}
                       </span>
                       <Button
