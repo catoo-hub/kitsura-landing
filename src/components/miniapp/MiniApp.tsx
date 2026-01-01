@@ -682,8 +682,12 @@ const SubscriptionTab = ({
                   })()}
 
                   {/* Server selection */}
-                  {purchaseOptions?.servers?.available &&
-                    purchaseOptions.servers.available.length > 0 && (
+                  {(() => {
+                    const serversOptions =
+                      purchaseOptions?.servers?.available ||
+                      purchaseOptions?.servers?.options ||
+                      [];
+                    return serversOptions.length ? (
                       <div className="space-y-2">
                         <Label>
                           Локации (
@@ -693,16 +697,15 @@ const SubscriptionTab = ({
                           )
                         </Label>
                         <div className="grid grid-cols-2 gap-2 max-h-48 overflow-y-auto custom-scrollbar pr-1">
-                          {purchaseOptions.servers.available.map(
-                            (server: any) => {
-                              const isSelected = selections.servers.has(
-                                server.uuid
-                              );
-                              return (
-                                <div
-                                  key={server.uuid}
-                                  onClick={() => toggleServer(server.uuid)}
-                                  className={`
+                          {serversOptions.map((server: any, idx: number) => {
+                            const uuid =
+                              server.uuid || server.id || server.code || idx;
+                            const isSelected = selections.servers.has(uuid);
+                            return (
+                              <div
+                                key={uuid}
+                                onClick={() => toggleServer(uuid)}
+                                className={`
                                 cursor-pointer rounded-lg p-2 border transition-all flex items-center gap-2
                                 ${
                                   isSelected
@@ -710,32 +713,35 @@ const SubscriptionTab = ({
                                     : "border-border hover:border-primary/50"
                                 }
                               `}
+                              >
+                                <div
+                                  className={`size-4 rounded-full border flex items-center justify-center ${
+                                    isSelected
+                                      ? "border-primary bg-primary"
+                                      : "border-muted-foreground"
+                                  }`}
                                 >
-                                  <div
-                                    className={`size-4 rounded-full border flex items-center justify-center ${
-                                      isSelected
-                                        ? "border-primary bg-primary"
-                                        : "border-muted-foreground"
-                                    }`}
-                                  >
-                                    {isSelected && (
-                                      <CheckCircle2 className="size-3 text-primary-foreground" />
-                                    )}
-                                  </div>
-                                  <span className="text-sm truncate">
-                                    {server.name}
-                                  </span>
+                                  {isSelected && (
+                                    <CheckCircle2 className="size-3 text-primary-foreground" />
+                                  )}
                                 </div>
-                              );
-                            }
-                          )}
+                                <span className="text-sm truncate">
+                                  {server.name ||
+                                    server.label ||
+                                    server.country ||
+                                    uuid}
+                                </span>
+                              </div>
+                            );
+                          })}
                         </div>
                         <p className="text-xs text-muted-foreground">
                           Выберите нужные локации. Если ничего не выбрано, будут
                           доступны все.
                         </p>
                       </div>
-                    )}
+                    ) : null;
+                  })()}
 
                   <div className="pt-4 border-t border-border/50 flex items-center justify-between">
                     <div className="flex flex-col">
@@ -746,21 +752,36 @@ const SubscriptionTab = ({
                         {calculatingPreview ? (
                           <Loader2 className="size-4 animate-spin inline" />
                         ) : (
-                          <>
-                            {preview?.total?.label ||
-                              (preview?.total?.kopeks !== null &&
+                          (() => {
+                            // Prefer preview total label/kopeks
+                            if (preview?.total?.label)
+                              return preview.total.label;
+                            if (
+                              preview?.total?.kopeks !== null &&
                               preview?.total?.kopeks !== undefined
-                                ? (preview.total.kopeks / 100).toFixed(0) +
-                                  " " +
-                                  purchaseOptions?.currency
-                                : (purchaseOptions?.periods.find(
-                                    (p: any) =>
-                                      p.id?.toString() === selections.periodId
-                                  )?.final_price_kopeks || 0) /
-                                    100 +
-                                  " " +
-                                  purchaseOptions?.currency)}
-                          </>
+                            ) {
+                              return (
+                                (preview.total.kopeks / 100).toFixed(0) +
+                                " " +
+                                (preview.currency || purchaseOptions?.currency)
+                              );
+                            }
+                            // Fallback to period price
+                            const period = purchaseOptions?.periods.find(
+                              (p: any) =>
+                                p.id?.toString() === selections.periodId
+                            );
+                            const rawKopeks =
+                              period?.final_price_kopeks ??
+                              period?.price_kopeks ??
+                              period?.priceKopeks ??
+                              0;
+                            return (
+                              (rawKopeks / 100).toFixed(0) +
+                              " " +
+                              (purchaseOptions?.currency || "₽")
+                            );
+                          })()
                         )}
                       </span>
                     </div>
