@@ -267,4 +267,25 @@ export const miniappApi = {
 
     return response.json();
   },
+
+  async removeDevice(initData: string, hwid: string): Promise<any> {
+    const payload = { initData, hwid };
+    const response = await fetch(`${API_BASE}/devices/remove`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || body?.success === false) {
+      const message =
+        body?.message ||
+        body?.detail?.message ||
+        body?.detail ||
+        "Failed to reset device";
+      throw new Error(message);
+    }
+
+    return body;
+  },
 };

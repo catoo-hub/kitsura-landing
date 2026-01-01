@@ -27,6 +27,12 @@ export function useSubscriptionPurchase(
   userData: UserData | null,
   initData: string
 ) {
+  const isRenewalMode = Boolean(
+    userData &&
+      userData.subscription_missing === false &&
+      (userData.user?.subscription_actual_status === "active" ||
+        userData.user?.subscription_status === "active")
+  );
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
@@ -34,7 +40,7 @@ export function useSubscriptionPurchase(
     periodId: null,
     trafficValue: null,
     servers: new Set(),
-    devices: null,
+    devices: 1,
   });
   const [preview, setPreview] = useState<any>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
@@ -65,23 +71,41 @@ export function useSubscriptionPurchase(
       setError(null);
 
       try {
-        const response = await fetch(
-          `${API_BASE}/subscription/purchase/options`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ initData }),
+        const optionEndpoints = isRenewalMode
+          ? [
+              `${API_BASE}/subscription/renewal/options`,
+              `${API_BASE}/subscription/purchase/options`,
+            ]
+          : [`${API_BASE}/subscription/purchase/options`];
+
+        let normalized: any = null;
+        let lastError: Error | null = null;
+        for (const endpoint of optionEndpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ initData }),
+            });
+            const body = await parseJsonSafe(response);
+            if (!response.ok || (body && body.success === false)) {
+              throw createError(
+                "Error",
+                extractSettingsError(body, response.status)
+              );
+            }
+            normalized = normalizeSubscriptionPurchasePayload(body, userData);
+            lastError = null;
+            break;
+          } catch (err: any) {
+            lastError = err;
           }
-        );
-        const body = await parseJsonSafe(response);
-        if (!response.ok || (body && body.success === false)) {
-          throw createError(
-            "Error",
-            extractSettingsError(body, response.status)
-          );
         }
 
-        const normalized = normalizeSubscriptionPurchasePayload(body, userData);
+        if (lastError) {
+          throw lastError;
+        }
+
         setData(normalized);
 
         // Reset selections based on new data
@@ -89,7 +113,7 @@ export function useSubscriptionPurchase(
           periodId: null,
           trafficValue: null,
           servers: new Set(),
-          devices: null,
+          devices: 1,
         };
 
         if (normalized.periods?.length) {
@@ -103,6 +127,7 @@ export function useSubscriptionPurchase(
             normalized,
             userData
           );
+          newSelections.devices = 1;
         }
 
         // Apply defaults from normalized data if available (logic from resetSubscriptionPurchaseSelections)
@@ -117,7 +142,7 @@ export function useSubscriptionPurchase(
         setLoading(false);
       }
     },
-    [initData, userData, data]
+    [initData, userData, data, isRenewalMode]
   );
 
   const updatePreview = useCallback(
@@ -145,6 +170,7 @@ export function useSubscriptionPurchase(
         data,
         userData
       );
+      patchedSelections.devices = 1;
 
       const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
         period,
@@ -169,35 +195,52 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
-        const response = await fetch(
-          `${API_BASE}/subscription/purchase/preview`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(payload),
+        const previewEndpoints = isRenewalMode
+          ? [
+              `${API_BASE}/subscription/renewal/preview`,
+              `${API_BASE}/subscription/purchase/preview`,
+            ]
+          : [`${API_BASE}/subscription/purchase/preview`];
+
+        let lastError: Error | null = null;
+        for (const endpoint of previewEndpoints) {
+          try {
+            const response = await fetch(endpoint, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const body = await parseJsonSafe(response);
+            if (!response.ok || (body && body.success === false)) {
+              throw createError(
+                "Error",
+                extractSettingsError(body, response.status)
+              );
+            }
+
+            const normalized = normalizeSubscriptionPurchasePreview(
+              body,
+              data,
+              userData
+            );
+            setPreview(normalized);
+            lastError = null;
+            break;
+          } catch (err: any) {
+            lastError = err;
           }
-        );
-        const body = await parseJsonSafe(response);
-        if (!response.ok || (body && body.success === false)) {
-          throw createError(
-            "Error",
-            extractSettingsError(body, response.status)
-          );
         }
 
-        const normalized = normalizeSubscriptionPurchasePreview(
-          body,
-          data,
-          userData
-        );
-        setPreview(normalized);
+        if (lastError) {
+          throw lastError;
+        }
       } catch (err: any) {
         setPreviewError(err);
       } finally {
         setPreviewLoading(false);
       }
     },
-    [data, initData, selections, userData, getSelectedPeriod]
+    [data, initData, selections, userData, getSelectedPeriod, isRenewalMode]
   );
 
   // Effect to update preview when selections change
@@ -212,7 +255,9 @@ export function useSubscriptionPurchase(
   }, []);
 
   const selectTraffic = useCallback((value: number) => {
-    const numeric = Number.isFinite(value as any) ? Number(value) : Number(value);
+    const numeric = Number.isFinite(value as any)
+      ? Number(value)
+      : Number(value);
     setSelections((prev) => ({ ...prev, trafficValue: numeric }));
   }, []);
 
@@ -225,8 +270,8 @@ export function useSubscriptionPurchase(
     });
   }, []);
 
-  const setDevices = useCallback((count: number) => {
-    setSelections((prev) => ({ ...prev, devices: count }));
+  const setDevices = useCallback(() => {
+    setSelections((prev) => ({ ...prev, devices: 1 }));
   }, []);
 
   const submitPurchase = useCallback(
@@ -256,6 +301,7 @@ export function useSubscriptionPurchase(
         data,
         userData
       );
+      effectiveSelections.devices = 1;
 
       const selectionPayload = buildSubscriptionPurchaseSelectionPayload(
         period,
@@ -278,7 +324,20 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
-        const response = await fetch(`${API_BASE}/subscription/purchase`, {
+        if (isRenewalMode) {
+          payload.period_id =
+            selectionPayload.period_id || selectionPayload.periodId;
+          payload.periodId =
+            selectionPayload.periodId || selectionPayload.period_id;
+          payload.period_days = selectionPayload.period_days;
+          payload.periodDays = selectionPayload.period_days;
+        }
+
+        const endpoint = isRenewalMode
+          ? `${API_BASE}/subscription/renewal`
+          : `${API_BASE}/subscription/purchase`;
+
+        const response = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload),
@@ -299,7 +358,15 @@ export function useSubscriptionPurchase(
         setSubmitting(false);
       }
     },
-    [submitting, data, initData, getSelectedPeriod, selections, userData]
+    [
+      submitting,
+      data,
+      initData,
+      getSelectedPeriod,
+      selections,
+      userData,
+      isRenewalMode,
+    ]
   );
 
   return {

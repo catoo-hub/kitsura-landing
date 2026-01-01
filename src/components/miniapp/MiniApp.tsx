@@ -78,6 +78,49 @@ interface FinanceTabProps extends TabProps {
   onTopUp: () => void;
 }
 
+const negativeTransactionTypes = new Set([
+  "withdrawal",
+  "subscription_payment",
+]);
+
+const formatCurrencyLabel = (value: number, currency: string) =>
+  new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: currency || "RUB",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(value);
+
+const formatDateTimeLabel = (value: any) => {
+  if (!value) return "";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("ru-RU", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  }).format(date);
+};
+
+const buildReferralLink = (referral: any) => {
+  if (!referral) return "";
+  const rawLink =
+    referral.link || referral.referral_link || referral.url || referral.href;
+  const code = referral.referral_code || referral.code;
+  if (rawLink) return rawLink;
+  if (code) return `https://t.me/kitsura_bot?start=${code}`;
+  return "";
+};
+
+const formatMoneyLabel = (label: any, kopeks: any, currency: string) => {
+  if (typeof label === "string" && label.trim()) return label;
+  const numeric =
+    typeof kopeks === "number" ? kopeks : Number.parseInt(kopeks ?? "", 10);
+  if (Number.isFinite(numeric)) {
+    return formatCurrencyLabel(numeric / 100, currency);
+  }
+  return "0";
+};
+
 // --- Components ---
 
 const BottomNav = ({
@@ -216,26 +259,27 @@ const HomeTab = ({
             </p>
           )}
 
-                <Button
-                  className="w-full shadow-lg shadow-primary/20"
-                  size="lg"
-                  onClick={() => {
-                    const redirectBase =
-                      "https://kitsura.fun/miniapp/redirect?redirect_to=";
-                    const target = hasActiveSubscription
-                      ? userData.subscription_url || userData.subscriptionUrl
-                      : userData.purchase_url || userData.purchaseUrl;
-                    if (target) {
-                      window.location.href = redirectBase + encodeURIComponent(target);
-                    } else if (hasActiveSubscription) {
-                      onOpenInstructions?.();
-                    } else {
-                      onNavigate?.("subscription");
-                    }
-                  }}
-                >
-                  {hasActiveSubscription ? "Настроить VPN" : "Добавить подписку"}
-                </Button>
+          <Button
+            className="w-full shadow-lg shadow-primary/20"
+            size="lg"
+            onClick={() => {
+              const redirectBase =
+                "https://kitsura.fun/miniapp/redirect?redirect_to=";
+              const target = hasActiveSubscription
+                ? userData.subscription_url || userData.subscriptionUrl
+                : userData.purchase_url || userData.purchaseUrl;
+              if (target) {
+                window.location.href =
+                  redirectBase + encodeURIComponent(target);
+              } else if (hasActiveSubscription) {
+                onOpenInstructions?.();
+              } else {
+                onNavigate?.("subscription");
+              }
+            }}
+          >
+            {hasActiveSubscription ? "Настроить VPN" : "Добавить подписку"}
+          </Button>
 
           {userData.trial_available && !hasActiveSubscription && (
             <Button
@@ -822,11 +866,19 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
       ? userData.balance
       : 0;
 
-  const currency =
-    userData.user?.balance_currency || userData.balance_currency || "RUB";
+  const currency = (
+    userData.user?.balance_currency ||
+    userData.balance_currency ||
+    "RUB"
+  ).toUpperCase();
 
-  const transactions =
-    userData.transactions || userData.history || userData.payments || [];
+  const transactions = Array.isArray(userData.transactions)
+    ? userData.transactions
+    : Array.isArray((userData as any).history)
+    ? (userData as any).history
+    : Array.isArray((userData as any).payments)
+    ? (userData as any).payments
+    : [];
 
   return (
     <div className="space-y-6 pb-24">
@@ -868,34 +920,79 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
             </div>
           )}
           {transactions.map((tx: any, idx: number) => {
-            const amount = tx.amount ?? tx.value ?? tx.sum ?? 0;
-            const isPositive = amount >= 0;
-            const label =
+            const typeRaw = (tx.type || tx.kind || tx.title || "")
+              .toString()
+              .toLowerCase();
+            const typeLabelMap: Record<string, string> = {
+              topup: "Пополнение",
+              deposit: "Пополнение",
+              withdrawal: "Вывод",
+              subscription_payment: "Списание за подписку",
+              renewal: "Продление",
+              referral_bonus: "Реферальный бонус",
+            };
+            const normalizedType = typeRaw.replace(/\s+/g, "_");
+            const typeLabel =
+              typeLabelMap[normalizedType] ||
               tx.title ||
               tx.type ||
               tx.kind ||
-              (isPositive ? "Пополнение" : "Списание");
-            const date = tx.date || tx.created_at || tx.createdAt;
+              (normalizedType ? normalizedType.replace(/_/g, " ") : "Операция");
+
+            const amountRaw =
+              typeof tx.amount_kopeks === "number"
+                ? tx.amount_kopeks
+                : Number.parseInt(
+                    (tx.amount_kopeks ??
+                      tx.amount ??
+                      tx.value ??
+                      tx.sum ??
+                      0) as any,
+                    10
+                  );
+            const amountValue = Number.isFinite(amountRaw)
+              ? amountRaw / 100
+              : 0;
+            const isNegative =
+              amountValue < 0 || negativeTransactionTypes.has(normalizedType);
+            const amountLabel = `${isNegative ? "-" : "+"}${formatCurrencyLabel(
+              Math.abs(amountValue),
+              currency
+            )}`;
+
+            const date = tx.created_at || tx.date || tx.createdAt;
+            const statusLabel =
+              tx.is_completed === false ? "В обработке" : "Завершено";
+            const metaParts = [formatDateTimeLabel(date), statusLabel].filter(
+              Boolean
+            );
+            const description =
+              tx.description || tx.message || tx.comment || tx.details;
+
             return (
               <div
-                key={idx}
-                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40"
+                key={tx.id || idx}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40 gap-3"
               >
-                <div>
-                  <div className="font-medium">{label}</div>
-                  {date && (
-                    <div className="text-xs text-muted-foreground">
-                      {new Date(date).toLocaleString()}
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{typeLabel}</div>
+                  {metaParts.length > 0 && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {metaParts.join(" • ")}
+                    </div>
+                  )}
+                  {description && (
+                    <div className="text-xs text-muted-foreground mt-1 line-clamp-2">
+                      {description}
                     </div>
                   )}
                 </div>
                 <div
-                  className={`font-semibold ${
-                    isPositive ? "text-green-500" : "text-red-500"
+                  className={`font-semibold text-right shrink-0 ${
+                    isNegative ? "text-red-500" : "text-green-500"
                   }`}
                 >
-                  {isPositive ? "+" : ""}
-                  {(Math.abs(amount) / 100).toFixed(2)} {currency}
+                  {amountLabel}
                 </div>
               </div>
             );
@@ -909,12 +1006,102 @@ const FinanceTab = ({ userData, isLoading, onTopUp }: FinanceTabProps) => {
 const SettingsTab = ({
   userData,
   isLoading,
+  initData,
+  onRefresh,
   appConfig,
 }: TabProps & { appConfig?: any }) => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isReferralOpen, setIsReferralOpen] = useState(false);
+  const [removingDevice, setRemovingDevice] = useState<string | null>(null);
 
   if (isLoading || !userData) return null;
+
+  const currency = (
+    userData.user?.balance_currency ||
+    userData.balance_currency ||
+    "RUB"
+  ).toUpperCase();
+
+  const referral = userData.referral as any;
+  const referralLink = buildReferralLink(referral);
+  const referralCode = referral?.referral_code || referral?.code;
+  const referralCopyValue = referralLink || referralCode || "";
+  const referralStats = referral?.stats || referral?.statistics || {};
+  const invitedCount =
+    referralStats.invited_count ?? referralStats.invited ?? 0;
+  const activeCount =
+    referralStats.active_referrals_count ??
+    referralStats.active_count ??
+    referralStats.active ??
+    0;
+  const paidCount =
+    referralStats.paid_referrals_count ??
+    referralStats.paid_count ??
+    referralStats.paid ??
+    referralStats.payings ??
+    0;
+  const totalEarnedLabel = formatMoneyLabel(
+    referralStats.total_earned_label ?? referralStats.earned_total_label,
+    referralStats.total_earned_kopeks ??
+      referralStats.earned_total_kopeks ??
+      referralStats.earned_total,
+    currency
+  );
+  const monthEarnedLabel = formatMoneyLabel(
+    referralStats.month_earned_label ?? referralStats.earned_month_label,
+    referralStats.month_earned_kopeks ??
+      referralStats.earned_month_kopeks ??
+      referralStats.earned_month,
+    currency
+  );
+  const conversionRate = Number.isFinite(referralStats.conversion_rate)
+    ? referralStats.conversion_rate
+    : invitedCount
+    ? (paidCount / invitedCount) * 100
+    : 0;
+  const friendBonus =
+    referral?.friend_bonus_percent ?? referral?.friendPercent ?? null;
+  const inviterBonus =
+    referral?.percent ??
+    referral?.bonus_percent ??
+    referral?.reward_percent ??
+    null;
+  const referralTerms = referral?.terms || {};
+  const devices = Array.isArray((userData as any).connected_devices)
+    ? (userData as any).connected_devices
+    : Array.isArray((userData as any).devices)
+    ? (userData as any).devices
+    : [];
+
+  const handleCopy = (value?: string) => {
+    if (!value) return;
+    if (navigator?.clipboard?.writeText) {
+      navigator.clipboard.writeText(value).then(() => {
+        toast.success("Скопировано");
+      });
+    }
+  };
+
+  const handleRemoveDevice = async (hwid?: string) => {
+    if (!hwid) {
+      toast.error("Не удалось определить устройство");
+      return;
+    }
+    if (!initData) {
+      toast.error("Нет данных авторизации");
+      return;
+    }
+    setRemovingDevice(hwid);
+    try {
+      await miniappApi.removeDevice(initData, hwid);
+      toast.success("Устройство сброшено");
+      onRefresh?.();
+    } catch (err: any) {
+      toast.error(err?.message || "Не удалось сбросить устройство");
+    } finally {
+      setRemovingDevice(null);
+    }
+  };
 
   const menuItems = [
     {
@@ -990,50 +1177,115 @@ const SettingsTab = ({
         ))}
       </div>
 
-      {userData.referral && (
+      <Card className="bg-card border border-border">
+        <CardHeader>
+          <CardTitle>Устройства</CardTitle>
+          <CardDescription>
+            Управление подключёнными устройствами
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {devices.length === 0 && (
+            <p className="text-sm text-muted-foreground">
+              Нет подключённых устройств
+            </p>
+          )}
+          {devices.map((device: any, idx: number) => {
+            const deviceId =
+              device?.hwid || device?.device_id || device?.id || device?.uuid;
+            const titleParts = [
+              device?.platform || device?.os,
+              device?.device_model,
+            ]
+              .filter(Boolean)
+              .map(String);
+            const title =
+              titleParts.filter(Boolean).join(" • ") ||
+              device?.label ||
+              deviceId ||
+              `Устройство ${idx + 1}`;
+
+            const metaParts: string[] = [];
+            if (device?.app_version)
+              metaParts.push(`Версия: ${device.app_version}`);
+            const lastSeen = device?.last_seen || device?.last_activity;
+            const formattedSeen = formatDateTimeLabel(lastSeen);
+            if (formattedSeen) metaParts.push(formattedSeen);
+            if (device?.last_ip) metaParts.push(String(device.last_ip));
+
+            return (
+              <div
+                key={deviceId || idx}
+                className="flex items-center justify-between p-3 rounded-lg border border-border/60 bg-card/40 gap-3"
+              >
+                <div className="flex-1 min-w-0">
+                  <div className="font-medium truncate">{title}</div>
+                  {metaParts.length > 0 && (
+                    <div className="text-xs text-muted-foreground truncate">
+                      {metaParts.join(" • ")}
+                    </div>
+                  )}
+                </div>
+                {deviceId && (
+                  <Button
+                    size="icon"
+                    variant="outline"
+                    onClick={() => handleRemoveDevice(deviceId)}
+                    disabled={removingDevice === deviceId}
+                    className="shrink-0"
+                  >
+                    {removingDevice === deviceId ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <X className="size-4" />
+                    )}
+                  </Button>
+                )}
+              </div>
+            );
+          })}
+          <p className="text-xs text-muted-foreground">
+            Если нужно освободить слот, сбросьте устройство. Это действие можно
+            отменить, повторно войдя через приложение на нужном устройстве.
+          </p>
+        </CardContent>
+      </Card>
+
+      {referral && (
         <Card className="bg-gradient-to-br from-purple-500/10 to-blue-500/10 border-primary/20">
-          <CardContent className="p-4">
+          <CardContent className="p-4 space-y-2">
             <div className="flex flex-col gap-2">
               <span className="font-medium text-sm">
                 Ваша реферальная ссылка
               </span>
               <div className="flex gap-2">
                 <code className="flex-1 bg-background/50 rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap">
-                  {userData.referral.link ||
-                    (userData.referral as any).referral_link ||
-                    (userData.referral as any).referral_code ||
-                    "Ссылка недоступна"}
+                  {referralLink || referralCopyValue || "Ссылка недоступна"}
                 </code>
                 <Button
                   size="icon"
                   variant="outline"
                   className="shrink-0"
-                  onClick={() => {
-                    const linkValue =
-                      userData.referral?.link ||
-                      (userData.referral as any).referral_link ||
-                      (userData.referral as any).referral_code;
-                    if (linkValue) {
-                      navigator.clipboard.writeText(linkValue);
-                      toast.success("Ссылка скопирована");
-                    }
-                  }}
+                  onClick={() => handleCopy(referralCopyValue)}
+                  disabled={!referralCopyValue}
                 >
                   <Copy className="size-4" />
                 </Button>
               </div>
-              {(userData.referral?.percent ||
-                (userData.referral as any)?.friend_bonus_percent) && (
-                <p className="text-xs text-muted-foreground">
-                  Бонус: {userData.referral.percent ||
-                    (userData.referral as any)?.friend_bonus_percent}% с
-                  пополнений друзей. Им и вам начисляется бонус.
-                </p>
-              )}
-              <p className="text-xs text-muted-foreground mt-1">
-                Приглашайте друзей и получайте бонусы.
-              </p>
             </div>
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span>Приглашено: {invitedCount}</span>
+              <span>Активны: {activeCount}</span>
+              <span>Заработано: {totalEarnedLabel}</span>
+            </div>
+            {(inviterBonus || friendBonus) && (
+              <p className="text-xs text-muted-foreground">
+                Бонус: {inviterBonus || friendBonus}% с пополнений друзей.
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Приглашайте друзей и получайте бонусы.
+            </p>
           </CardContent>
         </Card>
       )}
@@ -1044,29 +1296,18 @@ const SettingsTab = ({
             <DialogTitle>Реферальная программа</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <div className="p-4 bg-primary/5 rounded-xl border border-primary/10">
-              <h4 className="font-medium mb-2">Ваша ссылка</h4>
+            <div className="p-4 bg-primary/5 rounded-xl border border-primary/10 space-y-2">
+              <h4 className="font-medium">Ваша ссылка</h4>
               <div className="flex gap-2">
                 <code className="flex-1 bg-background rounded-lg px-3 py-2 text-xs font-mono flex items-center text-muted-foreground overflow-hidden text-ellipsis whitespace-nowrap border border-border">
-                  {userData.referral?.link ||
-                    (userData.referral as any).referral_link ||
-                    (userData.referral as any).referral_code ||
-                    "Ссылка недоступна"}
+                  {referralLink || referralCopyValue || "Ссылка недоступна"}
                 </code>
                 <Button
                   size="icon"
                   variant="outline"
                   className="shrink-0"
-                  onClick={() => {
-                    const linkValue =
-                      userData.referral?.link ||
-                      (userData.referral as any).referral_link ||
-                      (userData.referral as any).referral_code;
-                    if (linkValue) {
-                      navigator.clipboard.writeText(linkValue);
-                      toast.success("Ссылка скопирована");
-                    }
-                  }}
+                  onClick={() => handleCopy(referralCopyValue)}
+                  disabled={!referralCopyValue}
                 >
                   <Copy className="size-4" />
                 </Button>
@@ -1075,28 +1316,71 @@ const SettingsTab = ({
 
             <div className="grid grid-cols-2 gap-3">
               <div className="p-3 bg-card rounded-xl border border-border text-center">
-                <div className="text-2xl font-bold">
-                  {userData.referral?.stats?.invited_count || 0}
-                </div>
+                <div className="text-2xl font-bold">{invitedCount}</div>
                 <div className="text-xs text-muted-foreground">Приглашено</div>
               </div>
               <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-2xl font-bold">{activeCount}</div>
+                <div className="text-xs text-muted-foreground">Активны</div>
+              </div>
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-2xl font-bold">{paidCount}</div>
+                <div className="text-xs text-muted-foreground">Оплатили</div>
+              </div>
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-xl font-bold">{totalEarnedLabel}</div>
+                <div className="text-xs text-muted-foreground">Всего</div>
+              </div>
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
+                <div className="text-xl font-bold">{monthEarnedLabel}</div>
+                <div className="text-xs text-muted-foreground">За месяц</div>
+              </div>
+              <div className="p-3 bg-card rounded-xl border border-border text-center">
                 <div className="text-2xl font-bold">
-                  {userData.referral?.stats?.earned_total || 0}
+                  {Number.parseFloat(String(conversionRate || 0)).toFixed(1)}%
                 </div>
-                <div className="text-xs text-muted-foreground">Заработано</div>
+                <div className="text-xs text-muted-foreground">Конверсия</div>
               </div>
             </div>
 
-            <p className="text-sm text-muted-foreground text-center">
-              Приглашайте друзей и получайте
-              {userData.referral?.percent
-                ? ` ${userData.referral.percent}%`
-                : (userData.referral as any)?.friend_bonus_percent
-                ? ` ${(userData.referral as any).friend_bonus_percent}%`
-                : " бонус"} {""}
-              от их платежей на свой баланс.
-            </p>
+            {(inviterBonus || friendBonus) && (
+              <p className="text-sm text-muted-foreground text-center">
+                Бонус: {inviterBonus || friendBonus}% от пополнений
+                приглашённых.
+              </p>
+            )}
+
+            {referralTerms && Object.keys(referralTerms).length > 0 && (
+              <div className="space-y-2">
+                <h4 className="font-medium">Условия программы</h4>
+                <ul className="text-sm text-muted-foreground space-y-1">
+                  {referralTerms.minimum_topup_label && (
+                    <li>
+                      Минимальное пополнение:{" "}
+                      {referralTerms.minimum_topup_label}
+                    </li>
+                  )}
+                  {referralTerms.first_topup_bonus_label && (
+                    <li>
+                      Бонус за первое пополнение:{" "}
+                      {referralTerms.first_topup_bonus_label}
+                    </li>
+                  )}
+                  {referralTerms.inviter_bonus_label && (
+                    <li>Ваш бонус: {referralTerms.inviter_bonus_label}</li>
+                  )}
+                  {referralTerms.commission_percent !== undefined && (
+                    <li>
+                      Комиссия:{" "}
+                      {Number(referralTerms.commission_percent)
+                        .toFixed(1)
+                        .replace(/\.0$/, "")}
+                      %
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
           </div>
         </DialogContent>
       </Dialog>
@@ -1108,20 +1392,39 @@ const SettingsTab = ({
           </DialogHeader>
           <div className="text-sm text-muted-foreground whitespace-pre-wrap">
             {(() => {
-              const termsUrl =
-                appConfig?.config?.branding?.termsUrl ||
-                appConfig?.branding?.termsUrl ||
-                `${API_BASE}/terms` ||
-                `${API_BASE}/miniapp/terms` ||
-                "https://kitsura.fun/terms";
-              return termsUrl ? (
-                <iframe
-                  src={termsUrl}
-                  className="w-full h-[60vh] border-none"
-                />
-              ) : (
-                <p>Правила сервиса доступны на официальном сайте.</p>
-              );
+              const termsCandidates = [
+                appConfig?.config?.legal?.terms?.url,
+                appConfig?.legal?.terms?.url,
+                appConfig?.config?.branding?.termsUrl,
+                appConfig?.branding?.termsUrl,
+                (userData as any)?.legal_documents?.terms?.url,
+                `${API_BASE}/miniapp/terms`,
+                `${API_BASE}/terms`,
+                "https://kitsura.fun/terms",
+              ].filter(Boolean) as string[];
+              const termsUrl = termsCandidates[0];
+              const updatedAt =
+                (userData as any)?.legal_documents?.terms?.updated_at ||
+                (userData as any)?.legal_documents?.terms?.updatedAt;
+              const updatedLabel = updatedAt
+                ? formatDateTimeLabel(updatedAt)
+                : "";
+              if (termsUrl) {
+                return (
+                  <div className="space-y-2">
+                    {updatedLabel && (
+                      <p className="text-xs text-muted-foreground">
+                        Обновлено: {updatedLabel}
+                      </p>
+                    )}
+                    <iframe
+                      src={termsUrl}
+                      className="w-full h-[60vh] border-none"
+                    />
+                  </div>
+                );
+              }
+              return <p>Правила сервиса доступны на официальном сайте.</p>;
             })()}
           </div>
         </DialogContent>
@@ -1449,6 +1752,7 @@ export function MiniApp() {
                   isLoading={isLoading}
                   onRefresh={() => fetchData(initData)}
                   appConfig={appConfig}
+                  initData={initData}
                 />
               )}
             </motion.div>
