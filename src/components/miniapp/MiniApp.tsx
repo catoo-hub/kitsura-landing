@@ -63,7 +63,7 @@ import { useSubscriptionPurchase } from "@/hooks/useSubscriptionPurchase";
 import { useSubscriptionSettings } from "@/hooks/useSubscriptionSettings";
 import { useSubscriptionAutopay } from "@/hooks/useSubscriptionAutopay";
 
-import { LightRays } from "@/components/LightRays";
+import LightRays from "@/components/LightRays";
 
 // --- Types ---
 interface TabProps {
