@@ -392,10 +392,10 @@ const HomeTab = ({
           </p>
         </div>
         <Avatar className="size-10 border border-border">
-          <AvatarImage src="" />
-          <AvatarFallback>
+          <AvatarImage src="/favicon.png" />
+          {/* <AvatarFallback>
             {userData.user.first_name?.[0] || "U"}
-          </AvatarFallback>
+          </AvatarFallback> */}
         </Avatar>
       </div>
 
@@ -997,18 +997,51 @@ const SubscriptionTab = ({
                                 (preview.currency || purchaseOptions?.currency)
                               );
                             }
-                            // Fallback to period price
+
+                            // Fallback calculation (Client-side)
                             const period = purchaseOptions?.periods.find(
                               (p: any) =>
                                 p.id?.toString() === selections.periodId
                             );
-                            const rawKopeks =
+
+                            let totalKopeks =
                               period?.final_price_kopeks ??
                               period?.price_kopeks ??
                               period?.priceKopeks ??
                               0;
+
+                            // Add Traffic Price
+                            const trafficOptions =
+                              purchaseOptions?.traffic?.options ||
+                              purchaseOptions?.traffic?.available ||
+                              [];
+                            const trafficOpt = trafficOptions.find((t: any) => {
+                              const val = t.value ?? t.traffic ?? t.limit;
+                              return val === selections.trafficValue;
+                            });
+                            if (trafficOpt?.priceKopeks) {
+                              totalKopeks += trafficOpt.priceKopeks;
+                            }
+
+                            // Add Server Prices
+                            const serverOptions =
+                              purchaseOptions?.servers?.available ||
+                              purchaseOptions?.servers?.options ||
+                              [];
+                            if (selections.servers.size > 0) {
+                              selections.servers.forEach((uuid: string) => {
+                                const sOpt = serverOptions.find(
+                                  (s: any) =>
+                                    (s.uuid || s.id || s.code) === uuid
+                                );
+                                if (sOpt?.priceKopeks) {
+                                  totalKopeks += sOpt.priceKopeks;
+                                }
+                              });
+                            }
+
                             return (
-                              (rawKopeks / 100).toFixed(0) +
+                              (totalKopeks / 100).toFixed(0) +
                               " " +
                               (purchaseOptions?.currency || "₽")
                             );
