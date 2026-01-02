@@ -1990,7 +1990,7 @@ export function MiniApp() {
         {/* App Background Effects */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
-          <div className="absolute inset-0 opacity-50 top-[-50px] left-0 right-0 overflow-hidden">
+          <div className="absolute inset-0 opacity-50 top-[-220px] left-0 right-0 h-1/2 overflow-hidden">
             <LightRays
               raysOrigin="top-center"
               raysColor="white"
