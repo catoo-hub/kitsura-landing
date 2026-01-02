@@ -212,6 +212,12 @@ export function useSubscriptionPurchase(
           ...selectionPayload,
         };
 
+        const hasActiveSubscription =
+          userData &&
+          userData.subscription_missing === false &&
+          (userData.user?.subscription_actual_status === "active" ||
+            userData.user?.subscription_status === "active");
+
         const attempts = isRenewalMode
           ? [
               {
@@ -224,6 +230,15 @@ export function useSubscriptionPurchase(
               },
             ]
           : [
+              // If we are in purchase mode (e.g. constructor) but user has active sub, try renewal preview first to get upgrade price
+              ...(hasActiveSubscription
+                ? [
+                    {
+                      url: `${API_BASE}/subscription/renewal/preview`,
+                      useSubId: true,
+                    },
+                  ]
+                : []),
               {
                 url: `${API_BASE}/subscription/purchase/preview`,
                 useSubId: false, // Force false for purchase mode to avoid "Not enough funds" if subId is accidentally passed

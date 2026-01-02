@@ -526,7 +526,9 @@ const SubscriptionTab = ({
     setDevices,
     submitPurchase,
     getSelectedPeriod,
-  } = useSubscriptionPurchase(userData, initData);
+  } = useSubscriptionPurchase(userData, initData, {
+    forceMode: isConstructorMode ? "purchase" : undefined,
+  });
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
