@@ -1988,9 +1988,9 @@ export function MiniApp() {
       {/* App Container */}
       <div className="w-full max-w-md h-[100dvh] relative bg-background/40 backdrop-blur-xl shadow-2xl overflow-hidden z-10 flex flex-col border-x border-white/5">
         {/* App Background Effects */}
-        <div className="relative inset-0 z-0 pointer-events-none">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
-          <div className="absolute inset-0 opacity-50">
+          <div className="absolute inset-0 opacity-50 top-0 left-0 right-0 h-1/2 overflow-hidden">
             <LightRays
               raysOrigin="top-center"
               raysColor="white"
