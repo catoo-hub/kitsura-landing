@@ -1996,7 +1996,7 @@ export function MiniApp() {
               raysColor="white"
               raysSpeed={1.5}
               lightSpread={0.8}
-              rayLength={1.5}
+              rayLength={3.0}
               followMouse={true}
               mouseInfluence={0}
               noiseAmount={0.4}
