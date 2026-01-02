@@ -62,6 +62,7 @@ import type {
   PaymentMethod,
   PurchaseOptions,
   PurchasePeriod,
+  ReferralUser,
 } from "@/lib/types";
 import { InstallationModal } from "./InstallationModal";
 import { useUser } from "@/hooks/useUser";
@@ -1259,6 +1260,19 @@ const SettingsTab = ({
 }: TabProps & { appConfig?: any }) => {
   const [isTermsOpen, setIsTermsOpen] = useState(false);
   const [isReferralOpen, setIsReferralOpen] = useState(false);
+  const [referrals, setReferrals] = useState<ReferralUser[]>([]);
+  const [isLoadingReferrals, setIsLoadingReferrals] = useState(false);
+
+  useEffect(() => {
+    if (isReferralOpen && initData) {
+      setIsLoadingReferrals(true);
+      miniappApi
+        .fetchReferrals(initData)
+        .then(setReferrals)
+        .catch((err) => console.error("Failed to fetch referrals", err))
+        .finally(() => setIsLoadingReferrals(false));
+    }
+  }, [isReferralOpen, initData]);
 
   if (isLoading || !userData) return null;
 
@@ -1493,49 +1507,74 @@ const SettingsTab = ({
                 </AccordionTrigger>
                 <AccordionContent>
                   <div className="space-y-3 pt-2">
-                    <div className="bg-card rounded-xl border border-border p-3 space-y-2">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <div className="font-medium">aepstore.support</div>
-                          <div className="text-xs text-muted-foreground">
-                            @aepstore_sup
-                          </div>
-                        </div>
-                        <Badge
-                          variant="outline"
-                          className="text-green-500 border-green-500/20 bg-green-500/10"
+                    {isLoadingReferrals ? (
+                      <div className="flex justify-center py-4">
+                        <Loader2 className="size-6 animate-spin text-muted-foreground" />
+                      </div>
+                    ) : referrals.length > 0 ? (
+                      referrals.map((ref) => (
+                        <div
+                          key={ref.id}
+                          className="bg-card rounded-xl border border-border p-3 space-y-2"
                         >
-                          Активен
-                        </Badge>
-                      </div>
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium">
+                                {ref.first_name ||
+                                  ref.username ||
+                                  "Пользователь"}
+                              </div>
+                              {ref.username && (
+                                <div className="text-xs text-muted-foreground">
+                                  @{ref.username}
+                                </div>
+                              )}
+                            </div>
+                            <Badge
+                              variant="outline"
+                              className="text-green-500 border-green-500/20 bg-green-500/10"
+                            >
+                              {ref.status}
+                            </Badge>
+                          </div>
 
-                      <div className="grid grid-cols-2 gap-2 text-xs">
-                        <div>
-                          <div className="text-muted-foreground">
-                            Заработано
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <div className="text-muted-foreground">
+                                Заработано
+                              </div>
+                              <div className="font-medium">{ref.earned} ₽</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                Пополнения
+                              </div>
+                              <div className="font-medium">{ref.topups}</div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                Регистрация
+                              </div>
+                              <div className="font-medium">
+                                {ref.registration_date}
+                              </div>
+                            </div>
+                            <div>
+                              <div className="text-muted-foreground">
+                                Активность
+                              </div>
+                              <div className="font-medium">
+                                {ref.last_activity}
+                              </div>
+                            </div>
                           </div>
-                          <div className="font-medium">0 ₽</div>
                         </div>
-                        <div>
-                          <div className="text-muted-foreground">
-                            Пополнения
-                          </div>
-                          <div className="font-medium">1</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">
-                            Регистрация
-                          </div>
-                          <div className="font-medium">17 дек. 2025 г.</div>
-                        </div>
-                        <div>
-                          <div className="text-muted-foreground">
-                            Активность
-                          </div>
-                          <div className="font-medium">17 дек. 2025 г.</div>
-                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-4 text-muted-foreground text-sm">
+                        У вас пока нет рефералов
                       </div>
-                    </div>
+                    )}
                   </div>
                 </AccordionContent>
               </AccordionItem>

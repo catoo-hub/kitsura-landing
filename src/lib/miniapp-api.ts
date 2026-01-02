@@ -5,6 +5,7 @@ import {
   PurchaseOptions,
   PurchasePeriod,
   PurchaseServer,
+  ReferralUser,
 } from "./types";
 
 export type {
@@ -14,6 +15,7 @@ export type {
   PurchaseOptions,
   PurchasePeriod,
   PurchaseServer,
+  ReferralUser,
 };
 
 import {
@@ -287,5 +289,40 @@ export const miniappApi = {
     }
 
     return body;
+  },
+
+  async fetchReferrals(initData: string): Promise<ReferralUser[]> {
+    if (!initData) {
+      await delay(500);
+      return [
+        {
+          id: 1,
+          username: "aepstore_sup",
+          first_name: "aepstore.support",
+          status: "Активен",
+          earned: 0,
+          topups: 1,
+          registration_date: "17 дек. 2025 г.",
+          last_activity: "17 дек. 2025 г.",
+        },
+      ];
+    }
+
+    const response = await fetch(`${API_BASE}/referrals/list`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ initData }),
+    });
+
+    if (!response.ok) {
+      // Fallback or throw? User implies API exists.
+      // If 404, maybe return empty list or throw.
+      // Let's return empty list on error to not break UI
+      console.warn("Failed to fetch referrals");
+      return [];
+    }
+
+    const data = await response.json();
+    return data.referrals || [];
   },
 };

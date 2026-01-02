@@ -35,6 +35,18 @@ export interface UserData {
   devices?: any[];
 }
 
+export interface ReferralUser {
+  id: number | string;
+  username?: string;
+  first_name?: string;
+  last_name?: string;
+  status: string;
+  earned: number;
+  topups: number;
+  registration_date: string;
+  last_activity: string;
+}
+
 export interface PaymentMethod {
   id: string;
   title?: string;
