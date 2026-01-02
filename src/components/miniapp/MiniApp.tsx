@@ -299,7 +299,7 @@ const BottomNav = ({
   ];
 
   return (
-    <div className="sticky bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border/50 pb-safe pt-2 px-6 z-50">
+    <div className="fixed bottom-0 left-0 right-0 bg-background/80 backdrop-blur-lg border-t border-border/50 pb-safe pt-2 px-6 z-50">
       <div className="flex justify-between items-center max-w-md mx-auto">
         {navItems.map((item) => (
           <button
@@ -1979,23 +1979,6 @@ export function MiniApp() {
         {/* App Background Effects */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
-          {/* <div className="absolute inset-0 opacity-50">
-            <LightRays
-              raysColor="white"
-              raysSpeed={1.5}
-              lightSpread={0.8}
-              rayLength={0.6}
-              followMouse={true}
-              mouseInfluence={0}
-              noiseAmount={0.4}
-              distortion={0.05}
-              className="custom-rays"
-            />
-          </div> */}
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
-        </div>
-
-        <main className="relative z-10 p-4 pb-28 flex-1 overflow-y-auto custom-scrollbar">
           <div className="absolute inset-0 opacity-50">
             <LightRays
               raysColor="white"
@@ -2009,6 +1992,10 @@ export function MiniApp() {
               className="custom-rays"
             />
           </div>
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+        </div>
+
+        <main className="relative z-10 p-4 pb-28 flex-1 overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
