@@ -994,6 +994,18 @@ const SubscriptionTab = ({
                                 p.id?.toString() === selections.periodId
                             );
 
+                            // 2. Determine Duration in Months
+                            let months =
+                              period?.months ??
+                              period?.period_months ??
+                              period?.periodMonths;
+                            if (!months && period?.days) {
+                              months = Math.ceil(period.days / 30);
+                            }
+                            if (!months) months = 1;
+
+                            let totalKopeks = 0;
+
                             // 3. Calculate Base Price (Traffic or Period Default)
                             const trafficOptions =
                               purchaseOptions?.traffic?.options ||
