@@ -1990,7 +1990,11 @@ export function MiniApp() {
         {/* App Background Effects */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
-          <div className="absolute inset-0 opacity-50 top-[-220px] left-0 right-0 h-1/2 overflow-hidden">
+          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
+        </div>
+
+        <main className="relative z-10 p-4 pb-28 flex-1 overflow-y-auto custom-scrollbar">
+          <div className="absolute inset-0 opacity-50 top-0 left-0 right-0 h-1/2 overflow-hidden">
             <LightRays
               raysOrigin="top-center"
               raysColor="white"
@@ -2004,10 +2008,6 @@ export function MiniApp() {
               className="custom-rays"
             />
           </div>
-          <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
-        </div>
-
-        <main className="relative z-10 p-4 pb-28 flex-1 overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
