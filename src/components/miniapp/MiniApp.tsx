@@ -1017,6 +1017,8 @@ const SubscriptionTab = ({
                             });
 
                             const trafficPrice =
+                              trafficOpt?.final_price_kopeks ??
+                              trafficOpt?.finalPriceKopeks ??
                               trafficOpt?.price_kopeks ??
                               trafficOpt?.priceKopeks ??
                               0;
@@ -1025,6 +1027,16 @@ const SubscriptionTab = ({
                               // If traffic option has a specific price, it replaces the base period price
                               // We assume traffic price is per month
                               totalKopeks = trafficPrice * months;
+
+                              // Apply period discount if any
+                              const discount =
+                                period?.discount_percent ??
+                                period?.discountPercent ??
+                                0;
+                              if (discount > 0) {
+                                totalKopeks =
+                                  totalKopeks * (1 - discount / 100);
+                              }
                             } else {
                               // Fallback to period price (default traffic)
                               totalKopeks =
@@ -1046,16 +1058,34 @@ const SubscriptionTab = ({
                                     (s.uuid || s.id || s.code) === uuid
                                 );
                                 if (sOpt) {
-                                  const serverPrice =
-                                    sOpt.price_kopeks ?? sOpt.priceKopeks ?? 0;
+                                  let serverPrice =
+                                    sOpt.final_price_kopeks ??
+                                    sOpt.finalPriceKopeks ??
+                                    sOpt.price_kopeks ??
+                                    sOpt.priceKopeks ??
+                                    0;
+
+                                  // Apply period discount to servers too if using base price
+                                  const discount =
+                                    period?.discount_percent ??
+                                    period?.discountPercent ??
+                                    0;
+                                  if (
+                                    discount > 0 &&
+                                    !sOpt.final_price_kopeks &&
+                                    !sOpt.finalPriceKopeks
+                                  ) {
+                                    serverPrice =
+                                      serverPrice * (1 - discount / 100);
+                                  }
+
                                   totalKopeks += serverPrice * months;
                                 }
                               });
                             }
 
-                            // Use calculated price if in constructor mode, otherwise prefer preview if available
+                            // Use preview if available (Server-side is always source of truth)
                             if (
-                              !isConstructorMode &&
                               preview?.total?.kopeks !== undefined &&
                               preview?.total?.kopeks !== null
                             ) {
