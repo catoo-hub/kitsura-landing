@@ -15,7 +15,7 @@ export function useUser() {
     }
 
     // Dev mode fallback
-    if (!initData) {
+    if (!initData && import.meta.env.DEV) {
       console.log("Dev mode: returning mock user data");
       // Simulate network delay
       await new Promise((resolve) => setTimeout(resolve, 800));

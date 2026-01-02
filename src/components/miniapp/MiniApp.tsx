@@ -343,6 +343,10 @@ const HomeTab = ({
   }
 
   if (error) {
+    // If error is BOT_INVALID, show a more specific message
+    const isBotInvalid =
+      error.message?.includes("BOT_INVALID") || error.code === "BOT_INVALID";
+
     return (
       <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 p-4 text-center">
         <div className="p-3 bg-red-100 text-red-600 rounded-full">
@@ -350,7 +354,9 @@ const HomeTab = ({
         </div>
         <h3 className="font-semibold">Ошибка загрузки</h3>
         <p className="text-sm text-muted-foreground">
-          {error.message || "Не удалось загрузить данные пользователя"}
+          {isBotInvalid
+            ? "Ошибка авторизации. Пожалуйста, перезапустите приложение через бота."
+            : error.message || "Не удалось загрузить данные пользователя"}
         </p>
         <Button onClick={onRefresh} variant="outline">
           Попробовать снова
@@ -1926,6 +1932,11 @@ export function MiniApp() {
       setInitData(tg.initData);
 
       // Fetch initial data
+      // If initData is empty, it might be because the app is not launched from Telegram
+      // or it's a "Main App" launch where initData might be missing or different.
+      // However, for "BOT_INVALID" specifically, it usually means the hash validation failed on backend
+      // OR the initData is stale/missing.
+      // We will pass whatever we have.
       fetchData(tg.initData);
     } else {
       // Fallback for development outside Telegram
@@ -1975,7 +1986,7 @@ export function MiniApp() {
       </div>
 
       {/* App Container */}
-      <div className="w-full max-w-md min-h-screen relative bg-background/40 backdrop-blur-xl shadow-2xl overflow-hidden z-10 flex flex-col border-x border-white/5">
+      <div className="w-full max-w-md h-[100dvh] relative bg-background/40 backdrop-blur-xl shadow-2xl overflow-hidden z-10 flex flex-col border-x border-white/5">
         {/* App Background Effects */}
         <div className="absolute inset-0 z-0 pointer-events-none">
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
