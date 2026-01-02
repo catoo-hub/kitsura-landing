@@ -48,6 +48,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Toaster } from "@/components/ui/sonner";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { toast } from "sonner";
 import { miniappApi } from "@/lib/miniapp-api";
 import { API_BASE } from "@/lib/utils";
@@ -1479,6 +1485,61 @@ const SettingsTab = ({
                 <div className="text-xs text-muted-foreground">Конверсия</div>
               </div>
             </div>
+
+            <Accordion type="single" collapsible className="w-full">
+              <AccordionItem value="referrals" className="border-none">
+                <AccordionTrigger className="py-2 hover:no-underline">
+                  <span className="font-medium">Мои рефералы</span>
+                </AccordionTrigger>
+                <AccordionContent>
+                  <div className="space-y-3 pt-2">
+                    <div className="bg-card rounded-xl border border-border p-3 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <div className="font-medium">aepstore.support</div>
+                          <div className="text-xs text-muted-foreground">
+                            @aepstore_sup
+                          </div>
+                        </div>
+                        <Badge
+                          variant="outline"
+                          className="text-green-500 border-green-500/20 bg-green-500/10"
+                        >
+                          Активен
+                        </Badge>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs">
+                        <div>
+                          <div className="text-muted-foreground">
+                            Заработано
+                          </div>
+                          <div className="font-medium">0 ₽</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">
+                            Пополнения
+                          </div>
+                          <div className="font-medium">1</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">
+                            Регистрация
+                          </div>
+                          <div className="font-medium">17 дек. 2025 г.</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground">
+                            Активность
+                          </div>
+                          <div className="font-medium">17 дек. 2025 г.</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
 
             {(inviterBonus || friendBonus) && (
               <p className="text-sm text-muted-foreground text-center">
