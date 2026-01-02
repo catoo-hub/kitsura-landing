@@ -526,9 +526,7 @@ const SubscriptionTab = ({
     setDevices,
     submitPurchase,
     getSelectedPeriod,
-  } = useSubscriptionPurchase(userData, initData, {
-    forceMode: isConstructorMode ? "purchase" : undefined,
-  });
+  } = useSubscriptionPurchase(userData, initData);
 
   // Promo code state
   const [promoCode, setPromoCode] = useState("");
@@ -988,103 +986,7 @@ const SubscriptionTab = ({
                           <Loader2 className="size-4 animate-spin inline" />
                         ) : (
                           (() => {
-                            // Robust Client-side Calculation
-                            const period = purchaseOptions?.periods.find(
-                              (p: any) =>
-                                p.id?.toString() === selections.periodId
-                            );
-
-                            // 2. Determine Duration in Months
-                            let months =
-                              period?.months ??
-                              period?.period_months ??
-                              period?.periodMonths;
-                            if (!months && period?.days) {
-                              months = Math.ceil(period.days / 30);
-                            }
-                            if (!months) months = 1;
-
-                            let totalKopeks = 0;
-
-                            // 3. Calculate Base Price (Traffic or Period Default)
-                            const trafficOptions =
-                              purchaseOptions?.traffic?.options ||
-                              purchaseOptions?.traffic?.available ||
-                              [];
-                            const trafficOpt = trafficOptions.find((t: any) => {
-                              const val = t.value ?? t.traffic ?? t.limit;
-                              return val === selections.trafficValue;
-                            });
-
-                            const trafficPrice =
-                              trafficOpt?.final_price_kopeks ??
-                              trafficOpt?.finalPriceKopeks ??
-                              trafficOpt?.price_kopeks ??
-                              trafficOpt?.priceKopeks ??
-                              0;
-
-                            if (trafficPrice > 0) {
-                              // If traffic option has a specific price, it replaces the base period price
-                              // We assume traffic price is per month
-                              totalKopeks = trafficPrice * months;
-
-                              // Apply period discount if any
-                              const discount =
-                                period?.discount_percent ??
-                                period?.discountPercent ??
-                                0;
-                              if (discount > 0) {
-                                totalKopeks =
-                                  totalKopeks * (1 - discount / 100);
-                              }
-                            } else {
-                              // Fallback to period price (default traffic)
-                              totalKopeks =
-                                period?.final_price_kopeks ??
-                                period?.price_kopeks ??
-                                period?.priceKopeks ??
-                                0;
-                            }
-
-                            // 4. Add Server Prices
-                            const serverOptions =
-                              purchaseOptions?.servers?.available ||
-                              purchaseOptions?.servers?.options ||
-                              [];
-                            if (selections.servers.size > 0) {
-                              selections.servers.forEach((uuid: string) => {
-                                const sOpt = serverOptions.find(
-                                  (s: any) =>
-                                    (s.uuid || s.id || s.code) === uuid
-                                );
-                                if (sOpt) {
-                                  let serverPrice =
-                                    sOpt.final_price_kopeks ??
-                                    sOpt.finalPriceKopeks ??
-                                    sOpt.price_kopeks ??
-                                    sOpt.priceKopeks ??
-                                    0;
-
-                                  // Apply period discount to servers too if using base price
-                                  const discount =
-                                    period?.discount_percent ??
-                                    period?.discountPercent ??
-                                    0;
-                                  if (
-                                    discount > 0 &&
-                                    !sOpt.final_price_kopeks &&
-                                    !sOpt.finalPriceKopeks
-                                  ) {
-                                    serverPrice =
-                                      serverPrice * (1 - discount / 100);
-                                  }
-
-                                  totalKopeks += serverPrice * months;
-                                }
-                              });
-                            }
-
-                            // Use preview if available (Server-side is always source of truth)
+                            // 1. Prefer Server-side Preview (Source of Truth)
                             if (
                               preview?.total?.kopeks !== undefined &&
                               preview?.total?.kopeks !== null
@@ -1096,7 +998,67 @@ const SubscriptionTab = ({
                               );
                             }
 
+                            // 2. Fallback Client-side Calculation (Additive)
+                            const period = purchaseOptions?.periods.find(
+                              (p: any) =>
+                                p.id?.toString() === selections.periodId
+                            );
+
+                            let totalKopeks =
+                              period?.final_price_kopeks ??
+                              period?.price_kopeks ??
+                              period?.priceKopeks ??
+                              0;
+
+                            // Determine Duration in Months for multipliers
+                            let months =
+                              period?.months ??
+                              period?.period_months ??
+                              period?.periodMonths;
+                            if (!months && period?.days) {
+                              months = Math.ceil(period.days / 30);
+                            }
+                            if (!months) months = 1;
+
+                            // Add Traffic Price
+                            const trafficOptions =
+                              purchaseOptions?.traffic?.options ||
+                              purchaseOptions?.traffic?.available ||
+                              [];
+                            const trafficOpt = trafficOptions.find((t: any) => {
+                              const val = t.value ?? t.traffic ?? t.limit;
+                              return val === selections.trafficValue;
+                            });
+
+                            if (trafficOpt) {
+                              const trafficPrice =
+                                trafficOpt.price_kopeks ??
+                                trafficOpt.priceKopeks ??
+                                0;
+                              totalKopeks += trafficPrice * months;
+                            }
+
+                            // Add Server Prices
+                            const serverOptions =
+                              purchaseOptions?.servers?.available ||
+                              purchaseOptions?.servers?.options ||
+                              [];
+                            if (selections.servers.size > 0) {
+                              selections.servers.forEach((uuid: string) => {
+                                const sOpt = serverOptions.find(
+                                  (s: any) =>
+                                    (s.uuid || s.id || s.code) === uuid
+                                );
+                                if (sOpt) {
+                                  const serverPrice =
+                                    sOpt.price_kopeks ?? sOpt.priceKopeks ?? 0;
+                                  totalKopeks += serverPrice * months;
+                                }
+                              });
+                            }
+
                             return (
+                              "~" +
                               (totalKopeks / 100).toFixed(0) +
                               " " +
                               (purchaseOptions?.currency || "₽")
