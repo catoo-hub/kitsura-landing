@@ -1995,7 +1995,7 @@ export function MiniApp() {
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
         </div>
 
-        <main className="relative z-10 p-4 flex-1 overflow-y-auto custom-scrollbar">
+        <main className="relative z-10 p-4 pb-28 flex-1 overflow-y-auto custom-scrollbar">
           <AnimatePresence mode="wait">
             <motion.div
               key={activeTab}
