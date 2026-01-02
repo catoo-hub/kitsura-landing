@@ -292,37 +292,41 @@ export const miniappApi = {
   },
 
   async fetchReferrals(initData: string): Promise<ReferralUser[]> {
+    const mockReferrals = [
+      {
+        id: 1,
+        username: "user_one",
+        first_name: "user_one",
+        status: "Активен",
+        earned: 0,
+        topups: 1,
+        registration_date: "17 дек. 2025 г.",
+        last_activity: "17 дек. 2025 г.",
+      },
+    ];
+
     if (!initData) {
       await delay(500);
-      return [
-        {
-          id: 1,
-          username: "aepstore_sup",
-          first_name: "aepstore.support",
-          status: "Активен",
-          earned: 0,
-          topups: 1,
-          registration_date: "17 дек. 2025 г.",
-          last_activity: "17 дек. 2025 г.",
-        },
-      ];
+      return mockReferrals;
     }
 
-    const response = await fetch(`${API_BASE}/referrals/list`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ initData }),
-    });
+    try {
+      const response = await fetch(`${API_BASE}/referrals/list`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ initData }),
+      });
 
-    if (!response.ok) {
-      // Fallback or throw? User implies API exists.
-      // If 404, maybe return empty list or throw.
-      // Let's return empty list on error to not break UI
-      console.warn("Failed to fetch referrals");
-      return [];
+      if (!response.ok) {
+        console.warn("Failed to fetch referrals, using mock");
+        return mockReferrals;
+      }
+
+      const data = await response.json();
+      return data.referrals || [];
+    } catch (e) {
+      console.warn("Error fetching referrals, using mock", e);
+      return mockReferrals;
     }
-
-    const data = await response.json();
-    return data.referrals || [];
   },
 };
