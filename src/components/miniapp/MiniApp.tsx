@@ -988,33 +988,30 @@ const SubscriptionTab = ({
                           <Loader2 className="size-4 animate-spin inline" />
                         ) : (
                           (() => {
-                            // Prefer preview total label/kopeks
-                            if (preview?.total?.label)
-                              return preview.total.label;
-                            if (
-                              preview?.total?.kopeks !== null &&
-                              preview?.total?.kopeks !== undefined
-                            ) {
-                              return (
-                                (preview.total.kopeks / 100).toFixed(0) +
-                                " " +
-                                (preview.currency || purchaseOptions?.currency)
-                              );
-                            }
-
-                            // Fallback calculation (Client-side)
+                            // Robust Client-side Calculation
                             const period = purchaseOptions?.periods.find(
                               (p: any) =>
                                 p.id?.toString() === selections.periodId
                             );
 
+                            // 1. Base Period Price
                             let totalKopeks =
                               period?.final_price_kopeks ??
                               period?.price_kopeks ??
                               period?.priceKopeks ??
                               0;
 
-                            // Add Traffic Price
+                            // 2. Determine Duration in Months
+                            let months =
+                              period?.months ??
+                              period?.period_months ??
+                              period?.periodMonths;
+                            if (!months && period?.days) {
+                              months = Math.ceil(period.days / 30);
+                            }
+                            if (!months) months = 1;
+
+                            // 3. Add Traffic Price
                             const trafficOptions =
                               purchaseOptions?.traffic?.options ||
                               purchaseOptions?.traffic?.available ||
@@ -1023,11 +1020,16 @@ const SubscriptionTab = ({
                               const val = t.value ?? t.traffic ?? t.limit;
                               return val === selections.trafficValue;
                             });
-                            if (trafficOpt?.priceKopeks) {
-                              totalKopeks += trafficOpt.priceKopeks;
+
+                            if (trafficOpt) {
+                              const trafficPrice =
+                                trafficOpt.price_kopeks ??
+                                trafficOpt.priceKopeks ??
+                                0;
+                              totalKopeks += trafficPrice * months;
                             }
 
-                            // Add Server Prices
+                            // 4. Add Server Prices
                             const serverOptions =
                               purchaseOptions?.servers?.available ||
                               purchaseOptions?.servers?.options ||
@@ -1038,10 +1040,25 @@ const SubscriptionTab = ({
                                   (s: any) =>
                                     (s.uuid || s.id || s.code) === uuid
                                 );
-                                if (sOpt?.priceKopeks) {
-                                  totalKopeks += sOpt.priceKopeks;
+                                if (sOpt) {
+                                  const serverPrice =
+                                    sOpt.price_kopeks ?? sOpt.priceKopeks ?? 0;
+                                  totalKopeks += serverPrice * months;
                                 }
                               });
+                            }
+
+                            // Use calculated price if in constructor mode, otherwise prefer preview if available
+                            if (
+                              !isConstructorMode &&
+                              preview?.total?.kopeks !== undefined &&
+                              preview?.total?.kopeks !== null
+                            ) {
+                              return (
+                                (preview.total.kopeks / 100).toFixed(0) +
+                                " " +
+                                (preview.currency || purchaseOptions?.currency)
+                              );
                             }
 
                             return (
@@ -1865,7 +1882,6 @@ export function MiniApp() {
           <div className="absolute inset-0 bg-pattern-grid opacity-30" />
           <div className="absolute inset-0 opacity-50">
             <LightRays
-              raysOrigin="top-center"
               raysColor="white"
               raysSpeed={1.5}
               lightSpread={0.8}
@@ -1874,6 +1890,7 @@ export function MiniApp() {
               mouseInfluence={0}
               noiseAmount={0.4}
               distortion={0.05}
+              className="custom-rays"
             />
           </div>
           <div className="absolute inset-0 bg-gradient-to-b from-transparent via-background/50 to-background" />
